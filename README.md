@@ -1,2 +1,2 @@
 # ckeyter.github.io
-Web resume about me, a humble software developer: Christiaan Keyter
+Web resume about me, Christiaan Keyter, a humble software developer.
