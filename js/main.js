@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", function () {
       "move": {
         "enable": true,
         "speed": 2,
-        "direction": "top-right",
+        "direction": "top",
         "random": true,
         "straight": true,
         "out_mode": "out",
