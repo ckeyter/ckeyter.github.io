@@ -1,0 +1,88 @@
+---
+---
+
+@import "variables";
+@import "bootstrap/bootstrap";
+@import "bootswatch";
+
+@font-face {
+  font-family: "Monogram";
+  src: url(../fonts/monogram.ttf) format("truetype");
+}
+body {
+  font-family: "Monogram", sans-serif !important;
+}
+.menu {
+  font-size: 48px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 510px;
+  height: 325px;
+  margin: -160px 0 0 -255px;
+}
+.menu h1 {
+  font-size: 80px;
+}
+.menu h2 {
+  font-size: 56px;
+  color: $pink;
+}
+.menu-list {
+  text-align: center;
+}
+.menu p, a {
+  font-family: "Monogram",sans-serif;
+  font-size: 48px;
+}
+div#particles-js {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+.menu-link   {
+  color: $white;
+  text-decoration: none;
+}
+.menu-link:hover {
+  color: $pink;
+  text-decoration: none;
+}
+.menu-cursor {
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  -ms-interpolation-mode: nearest-neighbor;
+  
+  margin-right: 10px;
+  margin-bottom: 10px;
+}
+.menu-item {
+  margin-right: 60px;
+}
+.menu-item:hover .menu-cursor {
+  visibility: visible;
+}
+.menu-cursor {
+  visibility: hidden;
+}
+.job-description {
+  font-size: 32px;
+  color: black;
+}
+.job-header {
+  font-size: 48px;
+  text-align: center;
+}
+.job-subheader {
+  font-size: 40px;
+}
+.flex {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-content: space-between;
+}

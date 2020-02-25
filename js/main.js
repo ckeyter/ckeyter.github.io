@@ -13,7 +13,8 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       },
       "color": {
-        "value": "#ffffff"
+        // "value": "#ffffff"
+        "value": ["#ffffff", "#DC143C"]
       },
       "shape": {
         "type": "edge",
