@@ -12,28 +12,36 @@
 body {
   font-family: "Monogram", sans-serif !important;
 }
-.menu {
+a {
+  color: $white;
+  outline: none;
+}
+a:hover {
+  color: $pink;
+  text-decoration: none;
+}
+#menu {
   font-size: 48px;
   position: absolute;
   top: 50%;
   left: 50%;
   width: 510px;
-  height: 325px;
-  margin: -160px 0 0 -255px;
+  height: 470px;
+  margin: -235px 0 0 -255px;
 }
-.menu h1 {
+#menu h1 {
   font-size: 80px;
 }
-.menu h2 {
+#menu h2 {
   font-size: 56px;
   color: $pink;
 }
-.menu-list {
-  text-align: center;
-}
-.menu p, a {
+#menu p, a {
   font-family: "Monogram",sans-serif;
   font-size: 48px;
+}
+.menu-list {
+  text-align: center;
 }
 div#particles-js {
   position: fixed;
@@ -42,21 +50,47 @@ div#particles-js {
   width: 100%;
   height: 100%;
 }
-.menu-link   {
-  color: $white;
-  text-decoration: none;
+.header-row {
+  margin-bottom: 20px;
+  margin-top: 10px;
+  text-align: center;
 }
-.menu-link:hover {
-  color: $pink;
-  text-decoration: none;
+.logo {
+  // text-align: center;
 }
-.menu-cursor {
+.side-navbar {
+  position: fixed;
+  left: 100px;
+  top: 30px;
+}
+.navicon .tool-tip {
+  visibility: hidden;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 20px;
+  font-size: 40px;
+}
+.navicon:hover .tool-tip {
+  visibility: visible;
+}
+.pixel-image {
   image-rendering: -webkit-crisp-edges;
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
   image-rendering: pixelated;
   -ms-interpolation-mode: nearest-neighbor;
-  
+}
+.menu-link   {
+  color: $white;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.menu-link:hover {
+  color: $pink;
+  text-decoration: none;
+  // text-shadow: 2px 2px 0px $white;
+}
+.menu-cursor {
   margin-right: 10px;
   margin-bottom: 10px;
 }
@@ -85,4 +119,46 @@ div#particles-js {
   flex-wrap: wrap;
   justify-content: space-between;
   align-content: space-between;
+}
+.icon-link:hover {
+  filter: brightness(0) saturate(100%) invert(18%) sepia(100%) saturate(3107%) hue-rotate(337deg) brightness(86%) contrast(102%);
+}
+#player {
+  position: absolute;
+  visibility: hidden;
+}
+#game {
+  // display: none;
+}
+#game-canvas {
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  -ms-interpolation-mode: nearest-neighbor;
+  height: 360px;
+  width: 180px;
+}
+canvas {
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  -ms-interpolation-mode: nearest-neighbor;
+}
+#sprite-transform {
+  visibility: hidden;
+}
+.player-icon {
+  background-image: url('/images/player-transform.png');
+  background-repeat: no-repeat;
+  background-size: 880px 55px;
+
+  height: 55px;
+  width: 55px;
+  filter: invert(100%);
+  margin: 0 auto;
+}
+#start-game:hover {
+  filter: invert(14%) sepia(76%) saturate(6843%) hue-rotate(343deg) brightness(90%) contrast(90%);
 }

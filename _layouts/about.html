@@ -5,22 +5,42 @@ layout: default
 <div id="particles-js">
 </div>
 
+<div class="side-navbar">
+  <div class="navicon logo">
+    <span class="tool-tip">MAIN MENU</span>
+    <a href="/">
+      <img class="pixel-image" src="../images/logo.png" height="45px" width="45px">
+    </a>
+  </div>
+  <div class="navicon logo">
+    <span class="tool-tip">RESUME</span>
+    <a href="/resume">
+      <img class="pixel-image" src="../images/icon-1.png" height="45px" width="45px">
+    </a>
+  </div>
+  <div class="navicon logo">
+    <span class="tool-tip">PROJECTS</span>
+    <a href="/projects">
+      <img class="pixel-image" src="../images/icon-2.png" height="45px" width="45px">
+    </a>
+  </div>
+</div>
+
 <div class="container">
-  <div class="row" style="margin-bottom:20px;margin-top:10px">
+  <div class="row header-row">
     <div class="col-lg-12">
       <div class="page-header">
-        <h1 style="text-align:center" class="display-1">Experience</h1>
+        <h1 class="display-1">About Me</h1>
       </div>
     </div>
   </div>
 
-  {% for post in site.categories["Experience"] %}
   <div class="row">
-    <div class="col-lg-12">
-      <div class="card mb-3">
+    <div class="col-lg-12" style="font-size:40px">
+      I am blah di blah mo.
+      <!-- <div class="card mb-3">
         <div class="card-header">
           <h1 class="job-header">{{ post.title }}</h1>
-          <hr class="my-1">
           <div class="job-subheader flex">
               <div class="item">{{ post.period }}</div>
               <div class="item">{{ post.position }}</div>
@@ -30,136 +50,7 @@ layout: default
         <div class="card-body text-dark bg-light">
           <p class="card-text job-description">{{ post.content }}</p>
         </div>
-      </div>
-    </div>
-  </div>
-  {% endfor %}
-
-  <div class="row" style="margin-bottom:20px;margin-top:10px">
-    <div class="col-lg-12">
-      <div class="page-header">
-        <h1 style="text-align:center" class="display-1">Education</h1>
-      </div>
-    </div>
-  </div>
-
-  {% for post in site.categories["Education"] %}
-  <div class="row">
-    <div class="col-lg-12">
-      <div class="card mb-3">
-        <div class="card-header">
-          <h1 class="job-header">{{ post.title }}</h1>
-          <hr class="my-1">
-          <div class="job-subheader flex">
-              <div class="item">{{ post.period }}</div>
-              <div class="item">{{ post.position }}</div>
-              <div class="item">{{ post.location }}</div>
-          </div>
-        </div>
-        <div class="card-body text-dark bg-light">
-          <p class="card-text job-description">{{ post.content }}</p>
-        </div>
-      </div>
-    </div>
-  </div>
-  {% endfor %}
-
-  <div class="row" style="margin-bottom:20px;margin-top:10px">
-    <div class="col-lg-12">
-      <div class="page-header">
-        <h1 style="text-align:center" class="display-1">Awards</h1>
-      </div>
-    </div>
-  </div>
-
-  <div class="row">
-    <div class="col-lg-12" style="font-size:36px;">
-      <ul class="list-group">
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-          2013 - UP Achievement Award
-        </li>
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-          2013 - Real IRM Solutions Award for Best C# Project
-        </li>
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-          2012 - UP Achievement Award (Top of my degree)
-        </li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="row" style="margin-bottom:20px;margin-top:10px">
-    <div class="col-lg-12">
-      <div class="page-header">
-        <h1 style="text-align:center" class="display-1">Computer Skills</h1>
-      </div>
-    </div>
-  </div>
-  
-  <div class="row">
-    <div class="col-lg-12">
-      <div class="card mb-3">
-        <div class="card-header">
-          <h1 class="job-subheader">Advanced</h1>
-        </div>
-        <div class="card-body text-dark bg-light">
-          <p class="card-title job-description">Python | C++ | Godot | C# | Java | Qt | HTML | CSS | JavaScript | SQL | AWS</p>
-          <hr class="my-2">
-          <p class="card-text job-description">Code Design | Interface Design | Game Design</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row">
-    <div class="col-lg-12">
-      <div class="card mb-3">
-        <div class="card-header">
-          <h1 class="job-subheader">Intermediate</h1>
-        </div>
-        <div class="card-body text-dark bg-light">
-          <p class="card-title job-description">C | D | OpenGL | Unity | PHP</p>
-          <hr class="my-2">
-          <p class="card-text job-description">Computer Security | Networks | Watermarking | Cryptocurrency</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row">
-    <div class="col-lg-12">
-      <div class="card mb-3">
-        <div class="card-header">
-          <h1 class="job-subheader">Basic</h1>
-        </div>
-        <div class="card-body text-dark bg-light">
-          <p class="card-text job-description">Ruby | Assembly | Go</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row" style="margin-bottom:20px;margin-top:10px">
-    <div class="col-lg-12">
-      <div class="page-header">
-        <h1 style="text-align:center" class="display-1">Languages</h1>
-      </div>
-    </div>
-  </div>
-
-  <div class="row">
-    <div class="col-lg-12" style="font-size:36px;">
-      <ul class="list-group">
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-          English - Fluent
-        </li>
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-          Afrikaans - Mother tongue
-        </li>
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-          Dutch - Basic
-        </li>
-      </ul>
+      </div> -->
     </div>
   </div>
 </div>

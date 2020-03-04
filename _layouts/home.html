@@ -5,16 +5,29 @@ layout: default
 <div id="particles-js">
 </div>
 
-<div class="menu">
+<!-- <img id="player" class="pixel-image" src="../images/logo.png" height="45px" width="45px"> -->
+<div id="sprite-transform" class="pixel-image player-icon"></div>
+
+<div id="menu">
+    <div class="logo">
+      <a onclick="start_game_phase_1()" href="#">
+        <div id="start-game" class="pixel-image player-icon"></div>
+      </a>
+    </div>
+
     <h1>{{ site.username }}</h1>
     <h2>{{ site.user_title }}</h2>
     <div class="menu-list">
       <div class="menu-item">
-        <img class="menu-cursor" src="../images/cursor.png" height="21px" width="12px">
+        <img class="menu-cursor pixel-image" src="../images/cursor.png" height="21px" width="12px">
         <a class="menu-link" href="/about">About Me</a>
       </div>
       <div class="menu-item">
-        <img class="menu-cursor" src="../images/cursor.png" height="21px" width="12px">
+        <img class="menu-cursor pixel-image" src="../images/cursor.png" height="21px" width="12px">
+        <a class="menu-link" href="/resume">Resume</a>
+      </div>
+      <div class="menu-item">
+        <img class="menu-cursor pixel-image" src="../images/cursor.png" height="21px" width="12px">
         <a class="menu-link" href="/projects">Projects</a>
       </div>
       <!-- <a aria-label="My Instagram" target="_blank" href="https://www.instagram.com/mauriciourraco7"><i class="icon fa fa-instagram" aria-hidden="true"></i></a>
@@ -22,4 +35,9 @@ layout: default
       <a aria-label="My LinkedIn" target="_blank" href="https://www.linkedin.com/in/murraco"><i class="icon fa fa-linkedin-square" aria-hidden="true"></i></a>
       <a aria-label="My Github" target="_blank" href="https://github.com/murraco"><i class="icon fa fa-github-alt" aria-hidden="true"></i></a> -->
     </div>
+</div>
+
+<div id="game">
+  <!-- <img id="meow" class="pixel-image" src="../images/player-transform.png" height="11px" width="11px"> -->
+  <canvas id="game-canvas" width="45" height="90"></canvas>
 </div>
