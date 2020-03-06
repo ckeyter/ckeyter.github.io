@@ -1,6 +1,9 @@
 ---
-layout: default
+layout: default-noscroll
 ---
+
+<script src="{{ '/js/lib/phaser.min.js' | prepend: site.baseurl }}"></script>
+<script src="{{ '/js/game.js' | prepend: site.baseurl }}"></script>
 
 <div id="particles-js">
 </div>
@@ -10,7 +13,7 @@ layout: default
 
 <div id="menu">
     <div class="logo">
-      <a onclick="start_game_phase_1()" href="#">
+      <a onclick="game_intro_phase_1()" href="#">
         <div id="start-game" class="pixel-image player-icon"></div>
       </a>
     </div>
@@ -37,7 +40,8 @@ layout: default
     </div>
 </div>
 
-<div id="game">
+<!-- <div id="game">
+</div> -->
+
   <!-- <img id="meow" class="pixel-image" src="../images/player-transform.png" height="11px" width="11px"> -->
-  <canvas id="game-canvas" width="45" height="90"></canvas>
-</div>
+<canvas id="game-canvas"></canvas>

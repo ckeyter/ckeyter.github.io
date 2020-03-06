@@ -129,6 +129,9 @@ div#particles-js {
 }
 #game {
   // display: none;
+  text-align: center;
+  width: 100%;
+  height: 100%;
 }
 #game-canvas {
   image-rendering: -webkit-crisp-edges;
@@ -136,8 +139,10 @@ div#particles-js {
   image-rendering: crisp-edges;
   image-rendering: pixelated;
   -ms-interpolation-mode: nearest-neighbor;
-  height: 360px;
-  width: 180px;
+  height: 100%;
+  width: 100%;
+  display: none;
+  // width: 660px;
 }
 canvas {
   image-rendering: -webkit-crisp-edges;
@@ -147,7 +152,8 @@ canvas {
   -ms-interpolation-mode: nearest-neighbor;
 }
 #sprite-transform {
-  visibility: hidden;
+  // visibility: hidden;
+  display: none;
 }
 .player-icon {
   background-image: url('/images/player-transform.png');
