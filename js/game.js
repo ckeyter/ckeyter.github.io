@@ -1,8 +1,45 @@
-// class BulletGroup {
-//   constructor() {
-//     this.bullets = [];
-//   }
-// }
+class SpriteGroup {
+  constructor(scene, capacity, imageName, width, height, displayWidth, displayHeight, collisionCategory, collidesWithCategory) {
+    this.capacity = capacity;
+
+    this.activeSprites = [];
+    this.deadSprites = [];
+
+    let i;
+    for (i = 0; i < this.capacity; i++) {
+      let sprite = scene.matter.add.image(width, height, imageName);
+      sprite.setDisplaySize(displayWidth, displayHeight);
+      sprite.setVisible(false);
+
+      sprite.setCollisionCategory(collisionCategory);
+      sprite.setCollidesWith(collidesWithCategory);
+
+      this.deadSprites.push(sprite);
+    }
+  }
+  
+  getFirstDead() {
+    if (this.deadSprites.length == 0) {
+      return null;
+    }
+    
+    let sprite = this.deadSprites.shift();
+    this.activeSprites.push(sprite);
+    return sprite;
+  }
+  
+  update() {
+    let i = this.activeSprites.length;
+
+    while (i--) {
+      let sprite = this.activeSprites[i];
+      if (sprite.y <= 0) {
+        this.deadSprites.push(sprite);
+        this.activeSprites.splice(i, 1);
+      }
+    }
+  }
+}
 
 class GameScene extends Phaser.Scene {
   constructor() {
@@ -11,7 +48,7 @@ class GameScene extends Phaser.Scene {
 
   preload() {
     this.load.image('player-agile', '/images/sprites/player-agile-side.png');
-    this.load.image('bullet', '/images/sprites/bullet.png');
+    this.load.image('bullet', '/images/sprites/bullet-2.png');
   }
   
   create() {
@@ -20,19 +57,21 @@ class GameScene extends Phaser.Scene {
     let playerCategory = this.matter.world.nextCategory();
     let enemyCategory = this.matter.world.nextCategory();
 
-    this.bullet = this.matter.add.image(11, 11, 'bullet');
-    this.bullet.setDisplaySize(55, 55);
-    this.bullet.setPosition((window.innerWidth / 2), (window.innerHeight / 2) + 28);
+    // this.bullet = this.matter.add.image(11, 11, 'bullet');
+    // this.bullet.setDisplaySize(55, 55);
+    // this.bullet.setPosition((window.innerWidth / 2), (window.innerHeight / 2) + 28);
 
-    this.bullet.setCollisionCategory(bulletCategory);
-    this.bullet.setCollidesWith(this.enemyCategory);
+    // this.bullet.setCollisionCategory(bulletCategory);
+    // this.bullet.setCollidesWith(this.enemyCategory);
+    
+    this.bulletGroup = new SpriteGroup(this, 10, 'bullet', 11, 11, 55, 55, bulletCategory, enemyCategory);
     
     // this.playerGroup = this.matter.world.nextGroup();
     this.player = this.matter.add.image(11, 11, 'player-agile');
     this.player.setDisplaySize(55, 55);
     this.player.setPosition((window.innerWidth / 2), (window.innerHeight / 2) + 28);
-    this.player.setCollisionCategory(this.playerCategory);
-    this.player.setCollidesWith([this.defaultCategory, this.enemyCategory]);
+    this.player.setCollisionCategory(playerCategory);
+    this.player.setCollidesWith([defaultCategory, enemyCategory]);
 
     this.player.setFixedRotation();
     this.player.setAngle(270);
@@ -42,12 +81,14 @@ class GameScene extends Phaser.Scene {
     this.player.moveSpeed = 0.08;
 
     this.matter.world.setBounds(0, 0, window.innerWidth, window.innerHeight);
+    this.shootPressedDuration = 0;
 
     this.inputKeys = this.input.keyboard.addKeys({
         w: Phaser.Input.Keyboard.KeyCodes.W,
         s: Phaser.Input.Keyboard.KeyCodes.S,
         a: Phaser.Input.Keyboard.KeyCodes.A,
         d: Phaser.Input.Keyboard.KeyCodes.D,
+        f: Phaser.Input.Keyboard.KeyCodes.F,
         up: Phaser.Input.Keyboard.KeyCodes.UP,
         down: Phaser.Input.Keyboard.KeyCodes.DOWN,
         left: Phaser.Input.Keyboard.KeyCodes.LEFT,
@@ -55,30 +96,67 @@ class GameScene extends Phaser.Scene {
         space: Phaser.Input.Keyboard.KeyCodes.SPACE,
         shift: Phaser.Input.Keyboard.KeyCodes.SHIFT
     });
+
+    this.actions = {
+      "left": [ "left", "a" ],
+      "right": [ "right", "d" ],
+      "up": [ "up", "w" ],
+      "down": [ "down", "s" ],
+      "shoot": [ "space", "f" ]
+    };
   }
 
-  update() {
-    if (this.inputKeys.left.isDown || this.inputKeys.a.isDown) {
+  isActionPressed(action) {
+    if (action in this.actions) {
+      let actionKeys = this.actions[action];
+
+      for (let i in actionKeys) {
+        let key = actionKeys[i];
+        if (this.inputKeys[key].isDown) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  update(time, delta) {
+    if (this.isActionPressed("left")) {
       this.player.thrustLeft(this.player.moveSpeed);
     }
-    else if (this.inputKeys.right.isDown || this.inputKeys.d.isDown) {
+    else if (this.isActionPressed("right")) {
       this.player.thrustRight(this.player.moveSpeed);
     }
     
-    if (this.inputKeys.up.isDown || this.inputKeys.w.isDown) {
+    if (this.isActionPressed("up")) {
       this.player.thrust(this.player.moveSpeed);
     }
-    else if (this.inputKeys.down.isDown || this.inputKeys.s.isDown) {
+    else if (this.isActionPressed("down")) {
       this.player.thrustBack(this.player.moveSpeed);
     }
     
-    if (this.inputKeys.space.isDown) { // justDown?
-      // bullets.fireBullet(this.player.x, this.player.y - 20);
-      // console.log('space');
-      // fireBullet();
-      this.bullet.setVelocityY(-1);
-      console.log("X: " + this.bullet.x + " | Y: " + this.bullet.y);
+    if (this.isActionPressed("shoot")) { // justDown?
+      if (this.shootPressedDuration == 0 || this.shootPressedDuration >= 1000) {
+        let bullet = this.bulletGroup.getFirstDead();
+        // console.log("ACTIVE: " + this.bulletGroup.activeSprites.length + " | DEAD: " + this.bulletGroup.deadSprites.length);
+
+        if (bullet != null) {
+          bullet.setPosition(this.player.x, this.player.y - 22);
+          bullet.setVisible(true);
+          bullet.setVelocityY(-15);
+        } else {
+          console.log("WARNING: Out of bullet capacity");
+        }
+        this.shootPressedDuration = 0;
+      }
+
+      this.shootPressedDuration += delta;
+    } else {
+      this.shootPressedDuration = 0;
     }
+
+    this.bulletGroup.update();
   }
   
   fireBullet() {
