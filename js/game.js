@@ -16,6 +16,7 @@ class SpriteGroup {
 
     this.capacity = capacity;
     this.name = imageName;
+    this.scene = scene;
 
     this.activeSprites = [];
     this.deadSprites = [];
@@ -86,23 +87,55 @@ class SpriteGroup {
     return sprite;
   }
 
-  notifyDeath(sprite) {
-    this.activeSprites = this.activeSprites.filter(function(value, index, arr) {
-      return value !== sprite;
-    });
+  kill(sprite, explosion=false, index=-1) {
+    // Kills the sprite by moving it off-screen, disabling it, and stopping it's
+    // current motion. The `notifyDeath` method is called to indicate to
+    // it's parent SpriteGroup that the sprite can be recycled. Lastly,
+    // if an explosion sprite was passed along, set it off!
+    sprite.body.isSleeping = true;
+    sprite.setVisible(false);
+    sprite.setVelocity(0, 0);
 
+    let x = sprite.x;
+    let y = sprite.y;
+    sprite.setPosition(-TILE_SIZE, 0);
+
+    if (explosion) {
+        explode(this.scene.explosionGroup.getFirstDead(), x, y);
+    }
+    
+    if (index == -1) {
+      for (index = 0; index < this.activeSprites.length; index++) {
+        if (this.activeSprites[index] === sprite) {
+          break;
+        }
+      }
+    }
+
+    if (index == -1) {
+      console.log('ERROR: Could not find killed sprite in active sprites');
+      console.log(sprite);
+      return;
+    }
+    
     this.deadSprites.push(sprite);
+    this.activeSprites.splice(index, 1);
+
+    // if (this.name === "asteroids") {
+    //   console.log(filteredSprites);
+    //   console.log('DEAD: ' + this.deadSprites.length + ' | ACTIVE: ' + this.activeSprites.length);// + ' | WAS ACTIVE: ' + this.activeSprites);
+    // }
   }
 
   update() {
     let i = this.activeSprites.length;
 
-    while (i > 0) {
-      i--;
+    while (i--) {
+      if (i < 0 || i >= this.activeSprites.length) { break; }
       let sprite = this.activeSprites[i];
       if (this.isDead(sprite)) {
-        kill(sprite);
-        // i++;
+        this.kill(sprite, false, i);
+        i++;
       }
     }
   }
@@ -125,7 +158,7 @@ class GameScene extends Phaser.Scene {
     this.load.spritesheet('asteroids', '/images/sprites/asteroids.png', {
       frameWidth: 11,
       frameHeight: 11,
-      endFrame: 5
+      endFrame: 4
     });
   }
   
@@ -154,7 +187,7 @@ class GameScene extends Phaser.Scene {
     );
 
     this.asteroidsGroup = new SpriteGroup(
-      this, true, 20, 'asteroids', 11, 11, TILE_SIZE, TILE_SIZE, 10000, asteroidsCategory,
+      this, true, 25, 'asteroids', 11, 11, TILE_SIZE, TILE_SIZE, 1000, asteroidsCategory,
       [asteroidsCategory, bulletCategory, playerCategory], onCollide,
       function(sprite) {
         return (sprite.y > window.innerHeight + TILE_SIZE);
@@ -301,7 +334,7 @@ function spawnAsteroid(asteroid) {
   let angleIndex = Phaser.Math.Between(0, 3);
   asteroid.setRotation(ANGLES[angleIndex]);
 
-  let frameNo = Phaser.Math.Between(0, 5);
+  let frameNo = Phaser.Math.Between(0, 4);
   asteroid.setFrame(frameNo);
 
   let velocityX = 0;//Phaser.Math.Between(-1, 1);
@@ -330,32 +363,15 @@ function explode(explosion, x, y) {
   explosion.play('explode');
   
   setTimeout(function() {
-    kill(explosion, null);
+    explosion.group.kill(explosion, false);
   }, 200);
 }
 
-function kill(sprite, explosion) {
-  // Kills the sprite by moving it off-screen, disabling it, and stopping it's
-  // current motion. The `notifyDeath` method is called to indicate to
-  // it's parent SpriteGroup that the sprite can be recycled. Lastly,
-  // if an explosion sprite was passed along, set it off!
-  sprite.body.isSleeping = true;
-  sprite.setVisible(false);
-  sprite.setVelocity(0, 0);
 
-  let x = sprite.x;
-  let y = sprite.y;
-  sprite.setPosition(-TILE_SIZE, 0);
-
-  explode(explosion, x, y);
-
-  if (sprite.hasOwnProperty("group")) {
-    sprite.group.notifyDeath(sprite);
-  }
-}
 
 function onCollide(scene, collision) {
   if (collision.bodyA.label === 'asteroids' && collision.bodyB.label === 'player') {
+    console.log(collision);
     handleCollideAsteroid(scene, collision.bodyA.gameObject, collision.bodyB.gameObject);
   }
   else if (collision.bodyA.label === 'bullet') {
@@ -364,7 +380,7 @@ function onCollide(scene, collision) {
 }
 
 function handleCollideAsteroid(scene, asteroid, player) {
-  kill(asteroid, scene.explosionGroup.getFirstDead());
+  asteroid.group.kill(asteroid, true);
 
   scene.lives--;
   if (scene.lives <= 0) {
@@ -373,12 +389,19 @@ function handleCollideAsteroid(scene, asteroid, player) {
 }
 
 function handleCollideBullet(scene, bullet, victim) {
-  kill(victim, scene.explosionGroup.getFirstDead());
-  kill(bullet, scene.explosionGroup.getFirstDead());
+  victim.group.kill(victim, true)
+  bullet.group.kill(bullet, true);
 }
 
 function gameOver(scene, player) {
-  kill(player, scene.explosionGroup.getFirstDead());
+  player.body.isSleeping = true;
+  player.setVisible(false);
+  player.setVelocity(0, 0);
+
+  let x = player.x;
+  let y = player.y;
+  player.setPosition(-TILE_SIZE, 0);
+  explode(scene.explosionGroup.getFirstDead(), x, y);
 
   scene.add.text(window.innerWidth / 2 - 100, window.innerHeight / 2 - 100, 'GAME OVER', {
     fontFamily: 'Monogram',
