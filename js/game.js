@@ -1,18 +1,54 @@
 class SpriteGroup {
-  constructor(scene, capacity, imageName, width, height, displayWidth, displayHeight, collisionCategory, collidesWithCategory) {
+  constructor(
+      scene, useSpriteType, capacity, imageName, width, height, displayWidth,
+      displayHeight, collisionCategory=null, collidesWithCategory=null,
+      onCollideCallback=null, isDeadFunction=null) {
+
     this.capacity = capacity;
 
     this.activeSprites = [];
     this.deadSprites = [];
+    
+    if (isDeadFunction != null) {
+      this.isDead = isDeadFunction;
+    } else {
+      // Default isDead function: when it goes out of the screen
+      this.isDead = function(sprite) {
+        return (sprite.y < 0 || sprite.y > window.innerHeight || sprite.hasOwnProperty('killed'));
+      }
+    }
 
-    let i;
-    for (i = 0; i < this.capacity; i++) {
-      let sprite = scene.matter.add.image(width, height, imageName);
+    for (let i = 0; i < this.capacity; i++) {
+      let sprite;
+
+      if (useSpriteType) {
+        sprite = scene.matter.add.sprite(width, height, imageName);
+      } else {
+        sprite = scene.matter.add.image(width, height, imageName);
+      }
+      
       sprite.setDisplaySize(displayWidth, displayHeight);
       sprite.setVisible(false);
+      sprite.setFixedRotation();
+      sprite.setPosition(-100, -100);
+      // sprite.setMass(0);
 
-      sprite.setCollisionCategory(collisionCategory);
-      sprite.setCollidesWith(collidesWithCategory);
+      sprite.body.isSleeping = true;
+      sprite.body.label = imageName;
+
+      if (collisionCategory != null) {
+        sprite.setCollisionCategory(collisionCategory);
+      }
+
+      if (collidesWithCategory != null) {
+        sprite.setCollidesWith(collidesWithCategory);
+      }
+      
+      if (onCollideCallback != null) {
+        sprite.setOnCollide(function(collision) {
+          onCollideCallback(scene, collision);
+        });
+      }
 
       this.deadSprites.push(sprite);
     }
@@ -24,6 +60,7 @@ class SpriteGroup {
     }
     
     let sprite = this.deadSprites.shift();
+    sprite.body.isSleeping = false;
     this.activeSprites.push(sprite);
     return sprite;
   }
@@ -33,7 +70,10 @@ class SpriteGroup {
 
     while (i--) {
       let sprite = this.activeSprites[i];
-      if (sprite.y <= 0) {
+      if (this.isDead(sprite)) {
+        // console.log(sprite);
+        sprite.body.isSleeping = true;
+        sprite.setPosition(-100, -100);
         this.deadSprites.push(sprite);
         this.activeSprites.splice(i, 1);
       }
@@ -47,15 +87,25 @@ class GameScene extends Phaser.Scene {
   }
 
   preload() {
+    this.load.image('enemy', '/images/sprites/enemy.png');
     this.load.image('player-agile', '/images/sprites/player-agile-side.png');
     this.load.image('bullet', '/images/sprites/bullet-2.png');
+    this.load.spritesheet('explode', '/images/sprites/explode.png', {
+      frameWidth: 11,
+      frameHeight: 11,
+      endFrame: 5
+    });
   }
   
   create() {
+    // Tiles are square so this is used for width and height
+    const TILE_SIZE = 55;
+
     let defaultCategory = 1;
     let bulletCategory = this.matter.world.nextCategory();
     let playerCategory = this.matter.world.nextCategory();
     let enemyCategory = this.matter.world.nextCategory();
+    let explosionCategory = this.matter.world.nextCategory();
 
     // this.bullet = this.matter.add.image(11, 11, 'bullet');
     // this.bullet.setDisplaySize(55, 55);
@@ -63,15 +113,41 @@ class GameScene extends Phaser.Scene {
 
     // this.bullet.setCollisionCategory(bulletCategory);
     // this.bullet.setCollidesWith(this.enemyCategory);
+
+    this.explosionGroup = new SpriteGroup(
+      this, true, 10, 'explode', 11, 11, TILE_SIZE, TILE_SIZE, explosionCategory, 0
+    );
+
+    this.bulletGroup = new SpriteGroup(
+      this, false, 10, 'bullet', 11, 11, TILE_SIZE, TILE_SIZE, bulletCategory, enemyCategory
+    );
+
+    this.enemyGroup = new SpriteGroup(
+      this, false, 10, 'enemy', 11, 11, TILE_SIZE, TILE_SIZE, enemyCategory,
+      [bulletCategory, playerCategory], onEnemyCollide
+    );
+
+    // this.enemy = this.matter.add.image(11, 11, 'enemy');
+    // this.enemy.setDisplaySize(TILE_SIZE, TILE_SIZE);
+    let enemy = this.enemyGroup.getFirstDead();
+    enemy.setVisible(true);
+    enemy.setPosition((window.innerWidth / 2), 100);
+    // this.enemy.setCollisionCategory(enemyCategory);
+    // this.enemy.setCollidesWith([defaultCategory, bulletCategory, playerCategory]);
+    // 
+    // this.enemy.setFixedRotation();
+    // this.enemy.setAngle(180);
+    // this.enemy.setFrictionAir(0.05);
+    // this.enemy.setMass(30);
     
-    this.bulletGroup = new SpriteGroup(this, 10, 'bullet', 11, 11, 55, 55, bulletCategory, enemyCategory);
     
     // this.playerGroup = this.matter.world.nextGroup();
     this.player = this.matter.add.image(11, 11, 'player-agile');
-    this.player.setDisplaySize(55, 55);
+    this.player.setDisplaySize(TILE_SIZE, TILE_SIZE);
     this.player.setPosition((window.innerWidth / 2), (window.innerHeight / 2) + 28);
     this.player.setCollisionCategory(playerCategory);
     this.player.setCollidesWith([defaultCategory, enemyCategory]);
+    this.player.body.label = 'player';
 
     this.player.setFixedRotation();
     this.player.setAngle(270);
@@ -79,10 +155,20 @@ class GameScene extends Phaser.Scene {
     this.player.setMass(30);
 
     this.player.moveSpeed = 0.08;
-
+    
+    this.anims.create({
+      key: 'explode',
+      frames: this.anims.generateFrameNumbers('explode', {
+        start: 0,
+        end: 5
+      }),
+      frameRate: 20,
+      repeat: 0
+    });
+    
     this.matter.world.setBounds(0, 0, window.innerWidth, window.innerHeight);
     this.shootPressedDuration = 0;
-
+    
     this.inputKeys = this.input.keyboard.addKeys({
         w: Phaser.Input.Keyboard.KeyCodes.W,
         s: Phaser.Input.Keyboard.KeyCodes.S,
@@ -139,38 +225,57 @@ class GameScene extends Phaser.Scene {
     if (this.isActionPressed("shoot")) { // justDown?
       if (this.shootPressedDuration == 0 || this.shootPressedDuration >= 1000) {
         let bullet = this.bulletGroup.getFirstDead();
-        // console.log("ACTIVE: " + this.bulletGroup.activeSprites.length + " | DEAD: " + this.bulletGroup.deadSprites.length);
-
-        if (bullet != null) {
-          bullet.setPosition(this.player.x, this.player.y - 22);
-          bullet.setVisible(true);
-          bullet.setVelocityY(-15);
-        } else {
-          console.log("WARNING: Out of bullet capacity");
-        }
+        fireBullet(bullet, this.player.x, this.player.y - 22);
         this.shootPressedDuration = 0;
       }
-
       this.shootPressedDuration += delta;
-    } else {
+
+    } else if (this.shootPressedDuration != 0) {
       this.shootPressedDuration = 0;
     }
 
     this.bulletGroup.update();
+    this.enemyGroup.update();
+    this.explosionGroup.update();
   }
+}
+
+function fireBullet(bullet, x, y) {
+  if (bullet == null) {
+    console.log("WARNING: Out of bullet capacity");
+    return;
+  }
+
+  bullet.setPosition(x, y);
+  bullet.setVisible(true);
+  bullet.setVelocityY(-15);
+}
+
+function onEnemyCollide(scene, collision) {
+  let enemy = collision.bodyB;
+  let bullet = collision.bodyA;
+
+  if (enemy.label != "enemy" || bullet.label != "bullet") {
+    console.log("Collision: not enemy and bullet");
+    return;
+  }
+
+  enemy.isSleeping = true;
+  enemy.gameObject.setVelocity(0, 0);
+  enemy.gameObject.setVisible(false);
+  enemy.gameObject.killed = true;
   
-  fireBullet() {
-    var bullet = Bullet(this, 0, 0);
-    bullet.fire(this.player.x, this.player.y - 20);
-  //   const bullet = this.bullets.getFirstDead(false);
-  // 
-  //   if (bullet) {
-  //     bullet.body.reset(this.player.x, this.player.y - 20);
-  //     bullet.setActive(true);
-  //     bullet.setVisible(true);
-  //     bullet.setVelocityY(-900);
-  //   }
-  }
+  bullet.gameObject.setVisible(false);
+  bullet.gameObject.killed = true;
+
+  let explosion = scene.explosionGroup.getFirstDead();
+  explosion.setPosition(enemy.gameObject.x, enemy.gameObject.y);
+  explosion.setVisible(true);
+  explosion.play('explode');
+  
+  setTimeout(function() {
+    explosion.killed = true;
+  }, 1000);
 }
 
 function start_game_engine() {
