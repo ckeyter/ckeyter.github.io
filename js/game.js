@@ -1,10 +1,21 @@
+// Tiles are square so this is used for width and height
+const TILE_SIZE = 55;
+
+// Spawn an asteroid every x milliseconds
+const ASTEROID_SPAWN_TIME = 500;
+
+const ANGLES = [0, 90, 180, 270];
+
+const MAX_LIVES = 3;
+
 class SpriteGroup {
   constructor(
       scene, useSpriteType, capacity, imageName, width, height, displayWidth,
-      displayHeight, collisionCategory=null, collidesWithCategory=null,
+      displayHeight, mass, collisionCategory=null, collidesWithCategory=null,
       onCollideCallback=null, isDeadFunction=null) {
 
     this.capacity = capacity;
+    this.name = imageName;
 
     this.activeSprites = [];
     this.deadSprites = [];
@@ -14,7 +25,7 @@ class SpriteGroup {
     } else {
       // Default isDead function: when it goes out of the screen
       this.isDead = function(sprite) {
-        return (sprite.y < 0 || sprite.y > window.innerHeight || sprite.hasOwnProperty('killed'));
+        return (sprite.y < 0 || sprite.y > window.innerHeight);
       }
     }
 
@@ -26,12 +37,21 @@ class SpriteGroup {
       } else {
         sprite = scene.matter.add.image(width, height, imageName);
       }
-      
+
+      sprite.group = this;
       sprite.setDisplaySize(displayWidth, displayHeight);
       sprite.setVisible(false);
       sprite.setFixedRotation();
       sprite.setPosition(-100, -100);
-      // sprite.setMass(0);
+      sprite.setMass(mass);
+
+      sprite.setFriction(0);
+      sprite.setFrictionAir(0);
+      sprite.setFrictionStatic(0);
+
+      sprite.body.ignoreGravity = true;
+      // sprite.body.setAllowGravity(false);
+      // sprite.body.setAllowDrag(false);
 
       sprite.body.isSleeping = true;
       sprite.body.label = imageName;
@@ -56,26 +76,33 @@ class SpriteGroup {
   
   getFirstDead() {
     if (this.deadSprites.length == 0) {
+      console.log('WARNING: SpriteGroup "' + this.name + '" has run out of dead sprites.');
       return null;
     }
-    
+
     let sprite = this.deadSprites.shift();
     sprite.body.isSleeping = false;
     this.activeSprites.push(sprite);
     return sprite;
   }
-  
+
+  notifyDeath(sprite) {
+    this.activeSprites = this.activeSprites.filter(function(value, index, arr) {
+      return value !== sprite;
+    });
+
+    this.deadSprites.push(sprite);
+  }
+
   update() {
     let i = this.activeSprites.length;
 
-    while (i--) {
+    while (i > 0) {
+      i--;
       let sprite = this.activeSprites[i];
       if (this.isDead(sprite)) {
-        // console.log(sprite);
-        sprite.body.isSleeping = true;
-        sprite.setPosition(-100, -100);
-        this.deadSprites.push(sprite);
-        this.activeSprites.splice(i, 1);
+        kill(sprite);
+        // i++;
       }
     }
   }
@@ -87,7 +114,7 @@ class GameScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image('enemy', '/images/sprites/enemy.png');
+    this.load.image('enemy', '/images/sprites/enemy-2.png');
     this.load.image('player-agile', '/images/sprites/player-agile-side.png');
     this.load.image('bullet', '/images/sprites/bullet-2.png');
     this.load.spritesheet('explode', '/images/sprites/explode.png', {
@@ -95,17 +122,20 @@ class GameScene extends Phaser.Scene {
       frameHeight: 11,
       endFrame: 5
     });
+    this.load.spritesheet('asteroids', '/images/sprites/asteroids.png', {
+      frameWidth: 11,
+      frameHeight: 11,
+      endFrame: 5
+    });
   }
   
   create() {
-    // Tiles are square so this is used for width and height
-    const TILE_SIZE = 55;
-
     let defaultCategory = 1;
     let bulletCategory = this.matter.world.nextCategory();
     let playerCategory = this.matter.world.nextCategory();
     let enemyCategory = this.matter.world.nextCategory();
     let explosionCategory = this.matter.world.nextCategory();
+    let asteroidsCategory = this.matter.world.nextCategory();
 
     // this.bullet = this.matter.add.image(11, 11, 'bullet');
     // this.bullet.setDisplaySize(55, 55);
@@ -115,16 +145,25 @@ class GameScene extends Phaser.Scene {
     // this.bullet.setCollidesWith(this.enemyCategory);
 
     this.explosionGroup = new SpriteGroup(
-      this, true, 10, 'explode', 11, 11, TILE_SIZE, TILE_SIZE, explosionCategory, 0
+      this, true, 10, 'explode', 11, 11, TILE_SIZE, TILE_SIZE, 1, explosionCategory, 0
     );
 
     this.bulletGroup = new SpriteGroup(
-      this, false, 10, 'bullet', 11, 11, TILE_SIZE, TILE_SIZE, bulletCategory, enemyCategory
+      this, false, 20, 'bullet', 11, 11, TILE_SIZE, TILE_SIZE, 5, bulletCategory,
+      [asteroidsCategory, enemyCategory]
+    );
+
+    this.asteroidsGroup = new SpriteGroup(
+      this, true, 20, 'asteroids', 11, 11, TILE_SIZE, TILE_SIZE, 10000, asteroidsCategory,
+      [asteroidsCategory, bulletCategory, playerCategory], onCollide,
+      function(sprite) {
+        return (sprite.y > window.innerHeight + TILE_SIZE);
+      }
     );
 
     this.enemyGroup = new SpriteGroup(
-      this, false, 10, 'enemy', 11, 11, TILE_SIZE, TILE_SIZE, enemyCategory,
-      [bulletCategory, playerCategory], onEnemyCollide
+      this, false, 10, 'enemy', 11, 11, TILE_SIZE, TILE_SIZE, 50, enemyCategory,
+      [bulletCategory, playerCategory], onCollide
     );
 
     // this.enemy = this.matter.add.image(11, 11, 'enemy');
@@ -141,20 +180,20 @@ class GameScene extends Phaser.Scene {
     // this.enemy.setMass(30);
     
     
-    // this.playerGroup = this.matter.world.nextGroup();
     this.player = this.matter.add.image(11, 11, 'player-agile');
     this.player.setDisplaySize(TILE_SIZE, TILE_SIZE);
     this.player.setPosition((window.innerWidth / 2), (window.innerHeight / 2) + 28);
     this.player.setCollisionCategory(playerCategory);
-    this.player.setCollidesWith([defaultCategory, enemyCategory]);
+    this.player.setCollidesWith([defaultCategory, enemyCategory, asteroidsCategory]);
     this.player.body.label = 'player';
 
     this.player.setFixedRotation();
     this.player.setAngle(270);
-    this.player.setFrictionAir(0.05);
-    this.player.setMass(30);
+    this.player.setFrictionAir(0.05); // Default is 0.01
+    this.player.setMass(50); // Default is 3.025
 
     this.player.moveSpeed = 0.08;
+    this.lives = MAX_LIVES;
     
     this.anims.create({
       key: 'explode',
@@ -168,7 +207,8 @@ class GameScene extends Phaser.Scene {
     
     this.matter.world.setBounds(0, 0, window.innerWidth, window.innerHeight);
     this.shootPressedDuration = 0;
-    
+    this.lastAsteroidSpawn = 0;
+
     this.inputKeys = this.input.keyboard.addKeys({
         w: Phaser.Input.Keyboard.KeyCodes.W,
         s: Phaser.Input.Keyboard.KeyCodes.S,
@@ -184,11 +224,11 @@ class GameScene extends Phaser.Scene {
     });
 
     this.actions = {
-      "left": [ "left", "a" ],
-      "right": [ "right", "d" ],
-      "up": [ "up", "w" ],
-      "down": [ "down", "s" ],
-      "shoot": [ "space", "f" ]
+      'left': [ 'left', 'a' ],
+      'right': [ 'right', 'd' ],
+      'up': [ 'up', 'w' ],
+      'down': [ 'down', 's' ],
+      'shoot': [ 'space', 'f' ]
     };
   }
 
@@ -208,22 +248,23 @@ class GameScene extends Phaser.Scene {
   }
 
   update(time, delta) {
-    if (this.isActionPressed("left")) {
+    if (this.isActionPressed('left')) {
       this.player.thrustLeft(this.player.moveSpeed);
     }
-    else if (this.isActionPressed("right")) {
+    else if (this.isActionPressed('right')) {
       this.player.thrustRight(this.player.moveSpeed);
     }
     
-    if (this.isActionPressed("up")) {
+    if (this.isActionPressed('up')) {
       this.player.thrust(this.player.moveSpeed);
     }
-    else if (this.isActionPressed("down")) {
+    else if (this.isActionPressed('down')) {
       this.player.thrustBack(this.player.moveSpeed);
     }
     
-    if (this.isActionPressed("shoot")) { // justDown?
+    if (this.isActionPressed('shoot')) { // justDown?
       if (this.shootPressedDuration == 0 || this.shootPressedDuration >= 1000) {
+        // console.log('firing');
         let bullet = this.bulletGroup.getFirstDead();
         fireBullet(bullet, this.player.x, this.player.y - 22);
         this.shootPressedDuration = 0;
@@ -237,12 +278,39 @@ class GameScene extends Phaser.Scene {
     this.bulletGroup.update();
     this.enemyGroup.update();
     this.explosionGroup.update();
+    this.asteroidsGroup.update();
+    // console.log('DEAD: ' + this.explosionGroup.deadSprites.length + ' | ACTIVE: ' + this.explosionGroup.activeSprites.length);
+
+    if (this.lastAsteroidSpawn == 0 || this.lastAsteroidSpawn >= ASTEROID_SPAWN_TIME) {
+      spawnAsteroid(this.asteroidsGroup.getFirstDead());
+      this.lastAsteroidSpawn = 0;
+    }
+    this.lastAsteroidSpawn += delta;
   }
+}
+
+function spawnAsteroid(asteroid) {
+  if (asteroid == null) {
+    return;
+  }
+
+  let x = Phaser.Math.Between(0, window.innerWidth);
+  asteroid.setPosition(x, -TILE_SIZE);
+  asteroid.setVisible(true);
+
+  let angleIndex = Phaser.Math.Between(0, 3);
+  asteroid.setRotation(ANGLES[angleIndex]);
+
+  let frameNo = Phaser.Math.Between(0, 5);
+  asteroid.setFrame(frameNo);
+
+  let velocityX = 0;//Phaser.Math.Between(-1, 1);
+  let velocityY = Phaser.Math.Between(1, 3);
+  asteroid.setVelocity(velocityX, velocityY);
 }
 
 function fireBullet(bullet, x, y) {
   if (bullet == null) {
-    console.log("WARNING: Out of bullet capacity");
     return;
   }
 
@@ -251,31 +319,73 @@ function fireBullet(bullet, x, y) {
   bullet.setVelocityY(-15);
 }
 
-function onEnemyCollide(scene, collision) {
-  let enemy = collision.bodyB;
-  let bullet = collision.bodyA;
-
-  if (enemy.label != "enemy" || bullet.label != "bullet") {
-    console.log("Collision: not enemy and bullet");
+function explode(explosion, x, y) {
+  if (explosion == null) {
     return;
   }
 
-  enemy.isSleeping = true;
-  enemy.gameObject.setVelocity(0, 0);
-  enemy.gameObject.setVisible(false);
-  enemy.gameObject.killed = true;
-  
-  bullet.gameObject.setVisible(false);
-  bullet.gameObject.killed = true;
-
-  let explosion = scene.explosionGroup.getFirstDead();
-  explosion.setPosition(enemy.gameObject.x, enemy.gameObject.y);
+  // console.log("Exploding at: (" + x + ", " + y + ")");
+  explosion.setPosition(x, y);
   explosion.setVisible(true);
   explosion.play('explode');
   
   setTimeout(function() {
-    explosion.killed = true;
-  }, 1000);
+    kill(explosion, null);
+  }, 200);
+}
+
+function kill(sprite, explosion) {
+  // Kills the sprite by moving it off-screen, disabling it, and stopping it's
+  // current motion. The `notifyDeath` method is called to indicate to
+  // it's parent SpriteGroup that the sprite can be recycled. Lastly,
+  // if an explosion sprite was passed along, set it off!
+  sprite.body.isSleeping = true;
+  sprite.setVisible(false);
+  sprite.setVelocity(0, 0);
+
+  let x = sprite.x;
+  let y = sprite.y;
+  sprite.setPosition(-TILE_SIZE, 0);
+
+  explode(explosion, x, y);
+
+  if (sprite.hasOwnProperty("group")) {
+    sprite.group.notifyDeath(sprite);
+  }
+}
+
+function onCollide(scene, collision) {
+  if (collision.bodyA.label === 'asteroids' && collision.bodyB.label === 'player') {
+    handleCollideAsteroid(scene, collision.bodyA.gameObject, collision.bodyB.gameObject);
+  }
+  else if (collision.bodyA.label === 'bullet') {
+    handleCollideBullet(scene, collision.bodyA.gameObject, collision.bodyB.gameObject);
+  }
+}
+
+function handleCollideAsteroid(scene, asteroid, player) {
+  kill(asteroid, scene.explosionGroup.getFirstDead());
+
+  scene.lives--;
+  if (scene.lives <= 0) {
+    gameOver(scene, player);
+  }
+}
+
+function handleCollideBullet(scene, bullet, victim) {
+  kill(victim, scene.explosionGroup.getFirstDead());
+  kill(bullet, scene.explosionGroup.getFirstDead());
+}
+
+function gameOver(scene, player) {
+  kill(player, scene.explosionGroup.getFirstDead());
+
+  scene.add.text(window.innerWidth / 2 - 100, window.innerHeight / 2 - 100, 'GAME OVER', {
+    fontFamily: 'Monogram',
+    fontSize: '60px',
+    color: '#DC143C',
+    align: 'center'
+  });
 }
 
 function start_game_engine() {
@@ -303,8 +413,8 @@ function start_game_engine() {
 }
 
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener('DOMContentLoaded', function () {
   start_game_engine();
-  // let sprite = document.getElementById("sprite-transform");
-  // sprite.style.display = "none";
+  // let sprite = document.getElementById('sprite-transform');
+  // sprite.style.display = 'none';
 });
