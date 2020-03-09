@@ -136,6 +136,10 @@ class SpriteGroup {
       if (this.isDead(sprite)) {
         this.kill(sprite, false, i);
         i++;
+
+        if (this.name === "enemy") {
+          gameOver(this.scene, this.scene.player);
+        }
       }
     }
   }
@@ -170,13 +174,6 @@ class GameScene extends Phaser.Scene {
     let explosionCategory = this.matter.world.nextCategory();
     let asteroidsCategory = this.matter.world.nextCategory();
 
-    // this.bullet = this.matter.add.image(11, 11, 'bullet');
-    // this.bullet.setDisplaySize(55, 55);
-    // this.bullet.setPosition((window.innerWidth / 2), (window.innerHeight / 2) + 28);
-
-    // this.bullet.setCollisionCategory(bulletCategory);
-    // this.bullet.setCollidesWith(this.enemyCategory);
-
     this.explosionGroup = new SpriteGroup(
       this, true, 10, 'explode', 11, 11, TILE_SIZE, TILE_SIZE, 1, explosionCategory, 0
     );
@@ -188,7 +185,7 @@ class GameScene extends Phaser.Scene {
 
     this.asteroidsGroup = new SpriteGroup(
       this, true, 25, 'asteroids', 11, 11, TILE_SIZE, TILE_SIZE, 1000, asteroidsCategory,
-      [asteroidsCategory, bulletCategory, playerCategory], onCollide,
+      [asteroidsCategory, bulletCategory, playerCategory, enemyCategory], onCollide,
       function(sprite) {
         return (sprite.y > window.innerHeight + TILE_SIZE);
       }
@@ -196,23 +193,16 @@ class GameScene extends Phaser.Scene {
 
     this.enemyGroup = new SpriteGroup(
       this, false, 10, 'enemy', 11, 11, TILE_SIZE, TILE_SIZE, 50, enemyCategory,
-      [bulletCategory, playerCategory], onCollide
+      [bulletCategory, playerCategory, asteroidsCategory], onCollide,
+      function(sprite) {
+        return (sprite.y > window.innerHeight + TILE_SIZE);
+      }
     );
 
-    // this.enemy = this.matter.add.image(11, 11, 'enemy');
-    // this.enemy.setDisplaySize(TILE_SIZE, TILE_SIZE);
-    let enemy = this.enemyGroup.getFirstDead();
-    enemy.setVisible(true);
-    enemy.setPosition((window.innerWidth / 2), 100);
-    // this.enemy.setCollisionCategory(enemyCategory);
-    // this.enemy.setCollidesWith([defaultCategory, bulletCategory, playerCategory]);
-    // 
-    // this.enemy.setFixedRotation();
-    // this.enemy.setAngle(180);
-    // this.enemy.setFrictionAir(0.05);
-    // this.enemy.setMass(30);
-    
-    
+    // let enemy = this.enemyGroup.getFirstDead();
+    // enemy.setVisible(true);
+    // enemy.setPosition((window.innerWidth / 2), 100);
+
     this.player = this.matter.add.image(11, 11, 'player-agile');
     this.player.setDisplaySize(TILE_SIZE, TILE_SIZE);
     this.player.setPosition((window.innerWidth / 2), (window.innerHeight / 2) + 28);
@@ -263,6 +253,11 @@ class GameScene extends Phaser.Scene {
       'down': [ 'down', 's' ],
       'shoot': [ 'space', 'f' ]
     };
+
+    let scene = this;
+    window.setTimeout(function() {
+      startWaveOne(scene);
+    }, 3000);
   }
 
   isActionPressed(action) {
@@ -322,6 +317,25 @@ class GameScene extends Phaser.Scene {
   }
 }
 
+function spawnEnemy(scene, x, delay=0) {
+  if (delay > 0) {
+    window.setTimeout(function() {
+      spawnEnemy(scene, x);
+    }, delay);
+    return;
+  }
+
+  let enemy = scene.enemyGroup.getFirstDead();
+
+  if (enemy == null) {
+    return;
+  }
+
+  enemy.setPosition(x, -TILE_SIZE);
+  enemy.setVisible(true);
+  enemy.setVelocity(0, 2);
+}
+
 function spawnAsteroid(asteroid) {
   if (asteroid == null) {
     return;
@@ -367,20 +381,21 @@ function explode(explosion, x, y) {
   }, 200);
 }
 
-
-
 function onCollide(scene, collision) {
-  if (collision.bodyA.label === 'asteroids' && collision.bodyB.label === 'player') {
-    console.log(collision);
-    handleCollideAsteroid(scene, collision.bodyA.gameObject, collision.bodyB.gameObject);
+  if (collision.bodyB.label === 'player') {
+    if (collision.bodyA.label === 'asteroids' || collision.bodyA.label === 'enemy') {
+      console.log(collision);
+      handleCollidePlayer(scene, collision.bodyA.gameObject, collision.bodyB.gameObject);
+    }
   }
   else if (collision.bodyA.label === 'bullet') {
     handleCollideBullet(scene, collision.bodyA.gameObject, collision.bodyB.gameObject);
   }
 }
 
-function handleCollideAsteroid(scene, asteroid, player) {
-  asteroid.group.kill(asteroid, true);
+function handleCollidePlayer(scene, object, player) {
+  scene.cameras.main.shake(300, 0.003);
+  object.group.kill(object, true);
 
   scene.lives--;
   if (scene.lives <= 0) {
@@ -393,7 +408,18 @@ function handleCollideBullet(scene, bullet, victim) {
   bullet.group.kill(bullet, true);
 }
 
+function startWaveOne(scene) {
+  let enemy1X = window.innerWidth / 4;
+  let enemy2X = window.innerWidth / 2;
+  let enemy3X = enemy2X + enemy1X;
+
+  spawnEnemy(scene, enemy2X);
+  spawnEnemy(scene, enemy1X, 2000);
+  spawnEnemy(scene, enemy3X, 4000);
+}
+
 function gameOver(scene, player) {
+  scene.cameras.main.shake(1000, 0.004, true);
   player.body.isSleeping = true;
   player.setVisible(false);
   player.setVelocity(0, 0);
