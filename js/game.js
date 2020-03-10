@@ -16,6 +16,11 @@ const EnemyType = {
   BUNNY: 3
 };
 
+const PlayerMode = {
+  NORMAL: 0,
+  SPECIAL: 1
+}
+
 class SoundGroup {
   constructor(scene, capacity, soundName, volume=1) {
     this.capacity = capacity;
@@ -191,7 +196,12 @@ class GameScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image('player-agile', '/images/sprites/player-agile-side.png');
+    this.load.spritesheet('player', '/images/sprites/player-special-2.png', {
+      frameWidth: 11,
+      frameHeight: 11,
+      endFrame: 12
+    });
+
     this.load.image('bullet', '/images/sprites/bullet-2.png');
     this.load.image('bullet-enemy', '/images/sprites/bullet-5.png');
 
@@ -216,6 +226,7 @@ class GameScene extends Phaser.Scene {
     this.load.audio('music-1', '/audio/rep-01.ogg');
     this.load.audio('start', '/audio/warp.wav');
     this.load.audio('shoot', '/audio/shoot.ogg');
+    this.load.audio('transform', '/audio/transform.wav');
 
     this.load.audio('turbulence', '/audio/turbulence.wav');
     this.load.audio('turbulence-2', '/audio/turbulence-2.wav');
@@ -255,7 +266,7 @@ class GameScene extends Phaser.Scene {
     );
 
     this.asteroidsGroup = new SpriteGroup(
-      this, true, 25, 'asteroids', 11, 11, TILE_SIZE, TILE_SIZE, 1000, asteroidsCategory,
+      this, true, 25, 'asteroids', 11, 11, TILE_SIZE, TILE_SIZE, 50, asteroidsCategory,
       [asteroidsCategory, bulletCategory, playerCategory, enemyCategory, enemyBulletCategory], onCollide,
       function(sprite) {
         return (sprite.y > window.innerHeight + TILE_SIZE);
@@ -271,11 +282,13 @@ class GameScene extends Phaser.Scene {
     );
 
     // 3. Create and initialize the player sprite
-    this.player = this.matter.add.image(11, 11, 'player-agile');
+    this.player = this.matter.add.sprite(11, 11, 'player');
+    this.player.setFrame(0);
     this.player.setDisplaySize(TILE_SIZE, TILE_SIZE);
     this.player.setPosition((window.innerWidth / 2), (window.innerHeight / 2) + 28);
     this.player.setCollisionCategory(playerCategory);
     this.player.setCollidesWith([defaultCategory, enemyCategory, asteroidsCategory, enemyBulletCategory]);
+    this.player.mode = PlayerMode.NORMAL;
     this.player.body.label = 'player';
 
     this.player.setFixedRotation();
@@ -298,10 +311,31 @@ class GameScene extends Phaser.Scene {
       repeat: 0
     });
 
+    this.anims.create({
+      key: 'transform-special',
+      frames: this.anims.generateFrameNumbers('player', {
+        start: 0,
+        end: 10
+      }),
+      frameRate: 20,
+      repeat: 0
+    });
+
+    this.anims.create({
+      key: 'transform-normal',
+      frames: this.anims.generateFrameNumbers('player', {
+        start: 10,
+        end: 0
+      }),
+      frameRate: 20,
+      repeat: 0
+    });
+
     // 5. Set game and world properties
     this.matter.world.setBounds(0, 0, window.innerWidth, window.innerHeight);
     this.shootPressedDuration = 0;
     this.enemyShooters = [];
+    this.kills = 0;
 
     this.lastAsteroidSpawn = 0;
     this.lastEnemyShootTime = 0;
@@ -338,6 +372,8 @@ class GameScene extends Phaser.Scene {
 
     this.sounds.start = this.sound.add('start');
     this.sounds.start.play();
+
+    this.sounds.transform = this.sound.add('transform');
 
     this.sounds.turbulenceGroup = new SoundGroup(this, 5, 'turbulence');
     this.sounds.turbulence2Group = new SoundGroup(this, 5, 'turbulence-2');
@@ -398,7 +434,7 @@ class GameScene extends Phaser.Scene {
       this.player.thrustBack(this.player.moveSpeed);
     }
     
-    if (this.isActionPressed('shoot')) { // justDown?
+    if (this.isActionPressed('shoot')) {
       if (this.shootPressedDuration == 0 || this.shootPressedDuration >= 1000) {
         // console.log('firing');
         // if (this.sounds.shoot.isPlaying) {
@@ -407,6 +443,7 @@ class GameScene extends Phaser.Scene {
         //   this.sounds.shoot.play();
         // }
         this.sounds.shootGroup.play();
+        // transformPlayer(this, this.player);
 
         let bullet = this.bulletGroup.getFirstDead();
         fireBullet(bullet, this.player.x, this.player.y - 22);
@@ -451,6 +488,17 @@ class GameScene extends Phaser.Scene {
       }
       this.lastEnemySpawnTime += delta;
     }
+  }
+}
+
+function transformPlayer(scene, player) {
+  scene.sounds.transform.play();
+  if (player.mode === PlayerMode.NORMAL) {
+    player.play('transform-special');
+    player.mode = PlayerMode.SPECIAL;
+  } else {
+    player.play('transform-normal');
+    player.mode = PlayerMode.NORMAL;
   }
 }
 
@@ -561,8 +609,10 @@ function startWaveOne(scene) {
   let enemy11X = Phaser.Math.Between(quarterWidth, window.innerWidth - quarterWidth);
 
   // Launch the convoy
-  queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, enemy1X);
-  queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, enemy2X);
+  // queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, enemy1X);
+  // queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, enemy2X);
+  queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, 100);
+  queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, 150);
 
   queueSpawnEnemy(6000, scene, EnemyType.BASIC, 0, enemy3X);
   queueSpawnEnemy(0, scene, EnemyType.BASIC, 0, enemy4X);
@@ -579,6 +629,16 @@ function startWaveOne(scene) {
   queueSpawnEnemy(0, scene, EnemyType.BASIC, 0, enemy10X);
   queueSpawnEnemy(500, scene, EnemyType.SHOOTER, 2, enemy11X);
   queueSpawnEnemy(1000, scene, EnemyType.SHOOTER, 2, enemy6X);
+}
+
+function updateKills(scene) {
+  scene.kills = scene.kills + 1;
+
+  console.log("kills updated: " + scene.kills);
+  if (scene.kills >= 3) {
+    transformPlayer(scene, scene.player);
+    scene.kills = 0;
+  }
 }
 
 function fireBullet(bullet, x, y, velocityY=-15) {
@@ -615,7 +675,9 @@ function onCollide(scene, collision) {
 
   if (nameB === 'player') {
     if (nameA === 'asteroids' || nameA === 'enemies' || nameA === 'bullet-enemy') {
-      console.log(collision);
+      if (nameA === 'enemies') {
+        updateKills(scene);
+      }
       handleCollidePlayer(scene, bodyA, bodyB);
     }
   }
@@ -626,19 +688,41 @@ function onCollide(scene, collision) {
     scene.sounds.turbulence2Group.play();
   }
   else if (nameA === 'bullet') {
+    if (nameB === 'enemies') {
+      updateKills(scene);
+    }
     handleCollideBullet(scene, bodyA, bodyB);
+  }
+  else if (nameA === 'enemies' && nameB === 'enemies') {
+    if ((bodyA.hasOwnProperty('explosive') && bodyA.explosive) ||
+        (bodyB.hasOwnProperty('explosive') && bodyB.explosive)) {
+      bodyA.explosive = false;
+      bodyB.explosive = false;
+      bodyA.group.kill(bodyA, true);
+      bodyB.group.kill(bodyB, true);
+      scene.sounds.turbulenceGroup.play();
+      scene.sounds.turbulence2Group.play();
+    }
   }
 }
 
 function handleCollidePlayer(scene, object, player) {
   scene.cameras.main.shake(300, 0.003);
-  object.group.kill(object, true);
   scene.sounds.turbulenceGroup.play();
   scene.sounds.turbulence2Group.play();
 
-  scene.lives--;
-  if (scene.lives <= 0) {
-    gameOver(scene, player);
+  if (player.mode === PlayerMode.SPECIAL) {
+    transformPlayer(scene, player);
+    object.explosive = true;
+    setTimeout(function() {
+      object.group.kill(object, true);
+    }, 1500);
+  } else {
+    object.group.kill(object, true);
+    scene.lives--;
+    if (scene.lives <= 0) {
+      gameOver(scene, player);
+    }
   }
 }
 
