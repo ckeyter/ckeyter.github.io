@@ -3,7 +3,7 @@ const TILE_SIZE = 44;
 
 // Spawn an asteroid every x milliseconds
 const ASTEROID_SPAWN_TIME = 600;
-const ENEMY_SHOOT_TIME = 900;
+const ENEMY_SHOOT_TIME = 1500;
 
 const ANGLES = [0, 90, 180, 270];
 
@@ -145,8 +145,13 @@ class SpriteGroup {
         explode(this.scene.explosionGroup.getFirstDead(), x, y);
     }
 
-    if (this.name === 'enemies' && sprite.type === EnemyType.SHOOTER) {
-      removeEnemyShooter(this.scene, sprite);
+    if (this.name === 'enemies') {
+      if (sprite.type === EnemyType.SHOOTER) {
+        removeEnemyShooter(this.scene, sprite);
+      }
+      if (sprite.hasOwnProperty('isLast') && sprite.isLast) {
+        finishWave(this.scene);
+      }
     }
 
     if (index == -1) {
@@ -162,7 +167,7 @@ class SpriteGroup {
       console.log(sprite);
       return;
     }
-    
+
     this.deadSprites.push(sprite);
     this.activeSprites.splice(index, 1);
 
@@ -199,7 +204,7 @@ class GameScene extends Phaser.Scene {
     this.load.spritesheet('player', '/images/sprites/player-special-2.png', {
       frameWidth: 11,
       frameHeight: 11,
-      endFrame: 12
+      endFrame: 13
     });
 
     this.load.image('bullet', '/images/sprites/bullet-2.png');
@@ -226,7 +231,9 @@ class GameScene extends Phaser.Scene {
     this.load.audio('music-1', '/audio/rep-01.ogg');
     this.load.audio('start', '/audio/warp.wav');
     this.load.audio('shoot', '/audio/shoot.ogg');
-    this.load.audio('transform', '/audio/transform.wav');
+    this.load.audio('transform', '/audio/transform.ogg');
+    this.load.audio('alarm', '/audio/alarm.wav');
+    this.load.audio('special-hit', '/audio/special-hit.wav');
 
     this.load.audio('turbulence', '/audio/turbulence.wav');
     this.load.audio('turbulence-2', '/audio/turbulence-2.wav');
@@ -315,7 +322,7 @@ class GameScene extends Phaser.Scene {
       key: 'transform-special',
       frames: this.anims.generateFrameNumbers('player', {
         start: 0,
-        end: 10
+        end: 11
       }),
       frameRate: 20,
       repeat: 0
@@ -324,7 +331,7 @@ class GameScene extends Phaser.Scene {
     this.anims.create({
       key: 'transform-normal',
       frames: this.anims.generateFrameNumbers('player', {
-        start: 10,
+        start: 11,
         end: 0
       }),
       frameRate: 20,
@@ -374,13 +381,16 @@ class GameScene extends Phaser.Scene {
     this.sounds.start.play();
 
     this.sounds.transform = this.sound.add('transform');
+    this.sounds.alarm = this.sound.add('alarm');
+    this.sounds.alarm.setVolume(0.5);
+    this.sounds.specialHit = this.sound.add('special-hit');
 
     this.sounds.turbulenceGroup = new SoundGroup(this, 5, 'turbulence');
     this.sounds.turbulence2Group = new SoundGroup(this, 5, 'turbulence-2');
     this.sounds.turbulence3Group = new SoundGroup(this, 5, 'turbulence-3');
 
     let music1 = this.sound.add('music-1');
-    music1.setVolume(0.4);
+    music1.setVolume(0.2);
     this.sounds.music1 = music1;
 
     window.setTimeout(function() {
@@ -388,20 +398,16 @@ class GameScene extends Phaser.Scene {
     }, 1500);
 
     // 7. Start wave one
-    let scene = this;
-    window.setTimeout(function() {
-      let text = scene.add.text(window.innerWidth / 2 - 100, window.innerHeight / 2 - 100, 'WAVE 1', {
-        fontFamily: 'Monogram',
-        fontSize: '60px',
-        color: '#DC143C',
-        align: 'center'
-      });
-      
-      window.setTimeout(function() {
-        text.setVisible(false);
-        startWaveOne(scene);
-      }, 4000);
-    }, 3000);
+    this.waveText = this.add.text(window.innerWidth / 2 - 100, window.innerHeight / 2 - 100, 'BISCUITS', {
+      fontFamily: 'Monogram',
+      fontSize: '60px',
+      color: '#DC143C',
+      align: 'center',
+    });
+    this.waveText.setVisible(false);
+
+    this.currWave = 1;
+    startWave(this, this.currWave);
   }
 
   isActionPressed(action) {
@@ -483,7 +489,7 @@ class GameScene extends Phaser.Scene {
     if (this.spawnQueue.length > 0) {
       if (this.lastEnemySpawnTime >= this.spawnQueue[0].delay) {
         let data = this.spawnQueue.shift();
-        spawnEnemy(this, data.type, data.frame, data.x, data.velocityX, data.velocityY);
+        spawnEnemy(this, data.type, data.frame, data.x, data.velocityX, data.velocityY, data.isLast);
         this.lastEnemySpawnTime = 0;
       }
       this.lastEnemySpawnTime += delta;
@@ -492,13 +498,18 @@ class GameScene extends Phaser.Scene {
 }
 
 function transformPlayer(scene, player) {
-  scene.sounds.transform.play();
   if (player.mode === PlayerMode.NORMAL) {
+    scene.sounds.transform.play();
     player.play('transform-special');
-    player.mode = PlayerMode.SPECIAL;
-  } else {
+    window.setTimeout(function() {
+      player.mode = PlayerMode.SPECIAL;
+    }, 220);
+  }
+  else {
     player.play('transform-normal');
-    player.mode = PlayerMode.NORMAL;
+    window.setTimeout(function() {
+      player.mode = PlayerMode.NORMAL;
+    }, 220);
   }
 }
 
@@ -535,27 +546,33 @@ function removeEnemyShooter(scene, enemy) {
   }
 }
 
-function initEnemy(enemy, type, frame, x, y, velocityX, velocityY) {
+function initEnemy(enemy, type, frame, x, y, velocityX, velocityY, isLast=false) {
   enemy.setFrame(frame);
   enemy.setPosition(x, y);
   enemy.setVisible(true);
   enemy.setVelocity(velocityX, velocityY);
   enemy.type = type;
+
+  if (isLast) {
+    enemy.isLast = true;
+  }
 }
 
-function queueSpawnEnemy(delay, scene, type, frame, x, velocityX=0, velocityY=2) {
+function queueSpawnEnemy(delay, scene, type, frame, x, velocityX=0, velocityY=2, isLast=false) {
   // delay: between the previously spawned enemy and this one
+  // last: if this is the last enemy in the wave
   scene.spawnQueue.push({
     delay: delay,
     type: type,
     frame: frame,
     x: x,
     velocityX: velocityX,
-    velocityY: velocityY
+    velocityY: velocityY,
+    isLast: isLast
   });
 }
 
-function spawnEnemy(scene, type, frame, x, velocityX=0, velocityY=2) {
+function spawnEnemy(scene, type, frame, x, velocityX=0, velocityY=2, isLast) {
   let enemy = scene.enemyGroup.getFirstDead();
   if (enemy == null) {
     return;
@@ -567,8 +584,8 @@ function spawnEnemy(scene, type, frame, x, velocityX=0, velocityY=2) {
       return;
     }
 
-    initEnemy(enemy, type, 6, x, -TILE_SIZE * 2, velocityX, velocityY);
-    initEnemy(enemy2, type, 7, x, -TILE_SIZE, velocityX, velocityY);
+    initEnemy(enemy, type, 6, x, -TILE_SIZE * 2, velocityX, velocityY, false);
+    initEnemy(enemy2, type, 7, x, -TILE_SIZE, velocityX, velocityY, isLast);
 
     enemy2.destroyPriorities = [enemy, enemy2];
     enemy.head = enemy2;
@@ -579,62 +596,17 @@ function spawnEnemy(scene, type, frame, x, velocityX=0, velocityY=2) {
     // scene.matter.add.joint(enemy, enemy2, 0, 1);
   }
   else if (type === EnemyType.SHOOTER) {
-    initEnemy(enemy, type, frame, x, -TILE_SIZE, velocityX, velocityY);
+    initEnemy(enemy, type, frame, x, -TILE_SIZE, velocityX, velocityY, isLast);
     scene.enemyShooters.push(enemy);
   }
   else {
-    initEnemy(enemy, type, frame, x, -TILE_SIZE, velocityX, velocityY);
+    initEnemy(enemy, type, frame, x, -TILE_SIZE, velocityX, velocityY, isLast);
   }
-}
-
-function startWaveOne(scene) {
-  // First 2 enemies come down simultaneously
-  let enemy1X = window.innerWidth / 3;
-  let enemy2X = enemy1X * 2;
-
-  // Next 2 come down a little wider
-  let enemy3X = (window.innerWidth / 3) - 50;
-  let enemy4X = (enemy1X * 2) + 50;
-
-  // Next 3 come down aligned
-  let enemy5X = window.innerWidth / 4;
-  let enemy6X = window.innerWidth / 2;
-  let enemy7X = enemy5X + enemy6X;
-
-  // 2 come swooping from the sides while 4 come down scattered in the middle
-  let quarterWidth = window.innerWidth / 4;
-  let enemy8X = Phaser.Math.Between(quarterWidth, window.innerWidth - quarterWidth);
-  let enemy9X = Phaser.Math.Between(quarterWidth, window.innerWidth - quarterWidth);
-  let enemy10X = Phaser.Math.Between(quarterWidth, window.innerWidth - quarterWidth);
-  let enemy11X = Phaser.Math.Between(quarterWidth, window.innerWidth - quarterWidth);
-
-  // Launch the convoy
-  // queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, enemy1X);
-  // queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, enemy2X);
-  queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, 100);
-  queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, 150);
-
-  queueSpawnEnemy(6000, scene, EnemyType.BASIC, 0, enemy3X);
-  queueSpawnEnemy(0, scene, EnemyType.BASIC, 0, enemy4X);
-  
-  queueSpawnEnemy(6000, scene, EnemyType.SHOOTER, 1, enemy6X);
-  queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, enemy5X);
-  queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, enemy7X);
-  
-  queueSpawnEnemy(6000, scene, EnemyType.SHOOTER, 1, enemy3X, 0.5);
-  queueSpawnEnemy(0, scene, EnemyType.SHOOTER, 1, enemy4X, -0.5);
-  
-  queueSpawnEnemy(6000, scene, EnemyType.BASIC, 0, enemy8X);
-  queueSpawnEnemy(1000, scene, EnemyType.SHOOTER, 2, enemy9X);
-  queueSpawnEnemy(0, scene, EnemyType.BASIC, 0, enemy10X);
-  queueSpawnEnemy(500, scene, EnemyType.SHOOTER, 2, enemy11X);
-  queueSpawnEnemy(1000, scene, EnemyType.SHOOTER, 2, enemy6X);
 }
 
 function updateKills(scene) {
   scene.kills = scene.kills + 1;
 
-  console.log("kills updated: " + scene.kills);
   if (scene.kills >= 3) {
     transformPlayer(scene, scene.player);
     scene.kills = 0;
@@ -675,9 +647,6 @@ function onCollide(scene, collision) {
 
   if (nameB === 'player') {
     if (nameA === 'asteroids' || nameA === 'enemies' || nameA === 'bullet-enemy') {
-      if (nameA === 'enemies') {
-        updateKills(scene);
-      }
       handleCollidePlayer(scene, bodyA, bodyB);
     }
   }
@@ -707,18 +676,34 @@ function onCollide(scene, collision) {
 }
 
 function handleCollidePlayer(scene, object, player) {
+  scene.kills = 0;
   scene.cameras.main.shake(300, 0.003);
   scene.sounds.turbulenceGroup.play();
   scene.sounds.turbulence2Group.play();
 
   if (player.mode === PlayerMode.SPECIAL) {
     transformPlayer(scene, player);
+    scene.sounds.specialHit.play();
+
+    // if (object.body.label === 'bullet-enemy') {
+    // 
+    // }
+
+    explode(scene.explosionGroup.getFirstDead(), object.x, object.y);
     object.explosive = true;
     setTimeout(function() {
       object.group.kill(object, true);
     }, 1500);
-  } else {
+  }
+  else {
     object.group.kill(object, true);
+
+    player.setFrame(1);
+    window.setTimeout(function() {
+      player.setFrame(0);
+    }, 100);
+
+    scene.sounds.alarm.play();
     scene.lives--;
     if (scene.lives <= 0) {
       gameOver(scene, player);
@@ -792,3 +777,143 @@ document.addEventListener('DOMContentLoaded', function () {
   // let sprite = document.getElementById('sprite-transform');
   // sprite.style.display = 'none';
 });
+
+function playCredits() {
+  // CODE, ART & MUSIC BY  CHRISTIAAN KEYTER
+  // I LOVE MAKING GAMES
+  // SO HIRE ME!
+}
+
+function finishWave(scene) {
+  if (scene.currWave > 3) {
+    scene.waveText.setText('GREAT SUCCESS! YOU WIN!');
+    scene.waveText.setVisible(true);
+
+    window.setTimeout(function() {
+      scene.waveText.setVisible(false);
+    }, 4000);
+
+    playCredits();
+    return;
+  }
+
+  scene.waveText.setText('WAVE COMPLETE!');
+  scene.waveText.setVisible(true);
+  
+  window.setTimeout(function() {
+    scene.waveText.setVisible(false);
+    scene.currWave += 1;
+    startWave(scene, scene.currWave);
+  }, 4000);
+}
+
+function startWave(scene, waveNumber) {
+  window.setTimeout(function() {
+    scene.waveText.setText('WAVE ' + waveNumber);
+    scene.waveText.setVisible(true);
+    
+    window.setTimeout(function() {
+      scene.waveText.setVisible(false);
+      if (waveNumber == 1) {
+        spawnWaveOne(scene);
+      }
+      else if (waveNumber == 2) {
+        spawnWaveTwo(scene);
+      }
+      else if (waveNumber == 3) {
+        spawnWaveThree(scene);
+      }
+    }, 2000);
+  }, 2000);
+}
+
+function spawnWaveOne(scene) {
+  let oneThirdX = window.innerWidth / 3;
+  let twoThirdsX = oneThirdX * 2;
+
+  let quarterX = window.innerWidth / 4;
+  let middleX = window.innerWidth / 2;
+  let threeQuartersX = middleX + quarterX;
+
+  let enemy8X = Phaser.Math.Between(quarterX, window.innerWidth - quarterX);
+  let enemy9X = Phaser.Math.Between(quarterX, window.innerWidth - quarterX);
+  let enemy10X = Phaser.Math.Between(quarterX, window.innerWidth - quarterX);
+  let enemy11X = Phaser.Math.Between(quarterX, window.innerWidth - quarterX);
+
+  // Launch the convoy
+  queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, oneThirdX);
+  queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, twoThirdsX);
+  
+  queueSpawnEnemy(6000, scene, EnemyType.BASIC, 0, middleX);
+  queueSpawnEnemy(2000, scene, EnemyType.BASIC, 0, quarterX);
+  queueSpawnEnemy(0, scene, EnemyType.BASIC, 0, threeQuartersX);
+  
+  queueSpawnEnemy(6000, scene, EnemyType.SHOOTER, 1, middleX);
+  queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, quarterX);
+  queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, threeQuartersX);
+  
+  queueSpawnEnemy(6000, scene, EnemyType.SHOOTER, 1, oneThirdX, 0.5);
+  queueSpawnEnemy(0, scene, EnemyType.SHOOTER, 1, twoThirdsX, -0.5);
+  
+  queueSpawnEnemy(6000, scene, EnemyType.BASIC, 0, enemy8X);
+  queueSpawnEnemy(1000, scene, EnemyType.SHOOTER, 2, enemy9X);
+  queueSpawnEnemy(0, scene, EnemyType.BASIC, 0, enemy10X);
+  queueSpawnEnemy(2000, scene, EnemyType.SHOOTER, 2, enemy11X);
+
+  // Last enemy needs to be marked
+  queueSpawnEnemy(1000, scene, EnemyType.SHOOTER, 2, middleX, 0, 2, true);
+}
+
+function spawnWaveTwo(scene) {
+  // First 2 enemies come down simultaneously
+  let oneThirdX = window.innerWidth / 3;
+  let twoThirdsX = oneThirdX * 2;
+
+  // Next 2 come down a little wider
+  // let enemy3X = (window.innerWidth / 3) - 50;
+  // let enemy4X = (enemy1X * 2) + 50;
+
+  // Next 3 come down aligned
+  let quarterX = window.innerWidth / 4;
+  let middleX = window.innerWidth / 2;
+  let threeQuartersX = middleX + quarterX;
+
+  // 2 come swooping from the sides while 4 come down scattered in the middle
+  let betweenX1 = Phaser.Math.Between(quarterX, window.innerWidth - quarterX);
+  let betweenX2 = Phaser.Math.Between(quarterX, window.innerWidth - quarterX);
+  let betweenX3 = Phaser.Math.Between(quarterX, window.innerWidth - quarterX);
+  let betweenX4 = Phaser.Math.Between(quarterX, window.innerWidth - quarterX);
+  let betweenX5 = Phaser.Math.Between(quarterX, window.innerWidth - quarterX);
+
+  // Launch the convoy
+  queueSpawnEnemy(1000, scene, EnemyType.SHOOTER, 2, middleX);
+  queueSpawnEnemy(1000, scene, EnemyType.SHOOTER, 2, quarterX);
+  queueSpawnEnemy(0, scene, EnemyType.SHOOTER, 2, threeQuartersX);
+
+  queueSpawnEnemy(6000, scene, EnemyType.BASIC, 5, betweenX1);
+  queueSpawnEnemy(1000, scene, EnemyType.BASIC, 3, betweenX2);
+  queueSpawnEnemy(2000, scene, EnemyType.BASIC, 5, betweenX3);
+  queueSpawnEnemy(1000, scene, EnemyType.BASIC, 3, betweenX4);
+  queueSpawnEnemy(1000, scene, EnemyType.BASIC, 3, betweenX5);
+
+  // queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, enemy1X);
+  // queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, enemy2X);
+  // 
+  // queueSpawnEnemy(6000, scene, EnemyType.BASIC, 0, enemy3X);
+  // queueSpawnEnemy(0, scene, EnemyType.BASIC, 0, enemy4X);
+  // 
+  
+  // queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, enemy5X);
+  // queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, enemy7X);
+  // 
+  // queueSpawnEnemy(6000, scene, EnemyType.SHOOTER, 1, enemy3X, 0.5);
+  // queueSpawnEnemy(0, scene, EnemyType.SHOOTER, 1, enemy4X, -0.5);
+  // 
+  // queueSpawnEnemy(6000, scene, EnemyType.BASIC, 0, enemy8X);
+  // queueSpawnEnemy(1000, scene, EnemyType.SHOOTER, 2, enemy9X);
+  // queueSpawnEnemy(0, scene, EnemyType.BASIC, 0, enemy10X);
+  // queueSpawnEnemy(2000, scene, EnemyType.SHOOTER, 2, enemy11X);
+
+  // Last enemy needs to be marked
+  // queueSpawnEnemy(1000, scene, EnemyType.SHOOTER, 2, enemy6X, 0, 2, true);
+}
