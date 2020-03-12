@@ -1,14 +1,14 @@
 ---
 title: Pac-Man
-period: 2014&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+period: 2014&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 genre: Multiplayer Pac-Man
-development: University of Pretoria
+development: Uni. of Pretoria
 categories: Games
 ---
 
 Final year project with the requirement to make a multiplayer version of Pac-Man.
 I implemented the game using Three.js on the client and a Node.js server.
-I used WebSockets to allow seamlessly playing over the network. The game pits 2 or more
+I used WebSockets to allow seamlessly playing over a network, with each player sending a small JSON object containing their current movements, and the server broadcasting to keep everyone in sync. The game pits 2 or more
 Pac-Man players against 4 ghost players, and adds some skills to balance out the scales.
 
 <img src="/images/pacman/pacman-1.jpg" height="100%" width="100%">

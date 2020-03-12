@@ -1,13 +1,13 @@
 let particles = null;
 
-function game_intro_phase_1() {
+function gameIntroPhase1() {
   document.getElementById("start-audio").play();
 
   // 1. Stop particles and start phase 2 when they have stopped
   let id = setInterval(function() {
     if (particles.pJS.particles.move.speed <= 0) {
       clearInterval(id);
-      game_intro_phase_2();
+      gameIntroPhase2();
     } else {
       particles.pJS.particles.move.speed = particles.pJS.particles.move.speed - 0.01
     }
@@ -15,25 +15,25 @@ function game_intro_phase_1() {
 
   // 2. Secretly replace start-game icon with standalone icon that will fly
   //    away from the menu and do the transform animation
-  let start_game = document.getElementById("start-game");
+  let startGame = document.getElementById("start-game");
   let sprite = document.getElementById("sprite-transform");
-  let rect = start_game.getBoundingClientRect();
+  let rect = startGame.getBoundingClientRect();
 
   sprite.style.position = "absolute";
   sprite.style.left = rect.left + "px";
   sprite.style.top = rect.top + "px";
   sprite.style.display = "block";
-  start_game.style.display = "none";
+  startGame.style.display = "none";
 
-  // 3. Prepare things so that the menu can be flown away from
+  // 3. Prepare things so that the menu can be moved down out of the page
   let menu = document.getElementById("menu");
-  let menu_rect = menu.getBoundingClientRect();
-  let menu_top = menu_rect.top + 44;
+  let menuRect = menu.getBoundingClientRect();
+  let menuTop = menuRect.top + 44;
 
   // menu.style.position = "absolute";
   menu.style.margin = "0px";
-  menu.style.left = menu_rect.left + "px";
-  menu.style.top = menu_top + "px";
+  menu.style.left = menuRect.left + "px";
+  menu.style.top = menuTop + "px";
 
   particles.pJS.interactivity.events.onhover.enable = false;
 
@@ -42,6 +42,7 @@ function game_intro_phase_1() {
     let tutorial_1 = document.getElementById("tutorial-1");
     let tutorial_2 = document.getElementById("tutorial-2");
     let tutorial_3 = document.getElementById("tutorial-3");
+    let tutorial_4 = document.getElementById("tutorial-4");
     tutorial_1.style.display = "inline";
 
     setTimeout(function() {
@@ -54,13 +55,18 @@ function game_intro_phase_1() {
 
         setTimeout(function() {
           tutorial_3.style.display = "none";
+          tutorial_4.style.display = "inline";
+          
+          setTimeout(function() {
+            tutorial_4.style.display = "none";
+          }, 4000);
         }, 4000);
       }, 4000);
     }, 4000);
-  }, 7000);
+  }, 7500);
 }
 
-function game_intro_phase_2() {
+function gameIntroPhase2() {
   // 1. Increase speed of particles
   let interval = setInterval(function() {
     if (particles.pJS.particles.move.speed <= -10) {
@@ -72,35 +78,37 @@ function game_intro_phase_2() {
 
   // 2. Move the menu down and out of view (as if flying away from it)
   let menu = document.getElementById("menu");
-  let menu_top = menu.getBoundingClientRect().top;
+  let menuTop = menu.getBoundingClientRect().top;
 
   let sprite = document.getElementById("sprite-transform");
 
   setTimeout(function() {
-    let menu_interval = setInterval(function() {
-      if (menu.style.height + menu_top > window.innerHeight) {
-        clearInterval(menu_interval);
+    let menuInterval = setInterval(function() {
+      if (menu.style.height + menuTop > window.innerHeight) {
+        clearInterval(menuInterval);
       } else {
-        menu_top += 1;
-        menu.style.top = menu_top + "px";
+        menuTop += 1;
+        menu.style.top = menuTop + "px";
       }
     }, 2);
 
-    let sprite_top = menu.getBoundingClientRect().top - 44;
+    let spriteTop = menu.getBoundingClientRect().top - 44;
 
-    let sprite_interval = setInterval(function() {
-      if (sprite.style.height + sprite_top > window.innerHeight / 2) {
-        clearInterval(sprite_interval);
-        setTimeout(play_transform, 1000);
+    let spriteInterval = setInterval(function() {
+      if (sprite.style.height + spriteTop > window.innerHeight / 2) {
+        clearInterval(spriteInterval);
+	// 3. Trigger the transform animation and next phase
+        setTimeout(gameIntroPhase3, 1000);
       } else {
-        sprite_top += 2;
-        sprite.style.top = sprite_top + "px";
+        spriteTop += 2;
+        sprite.style.top = spriteTop + "px";
       }
     }, 10);
   }, 2000);
 }
 
-function play_transform() {
+function gameIntroPhase3() {
+  // 1. Play the ship transform animation
   let sprite = document.getElementById("sprite-transform");
   let position = 0;
 
@@ -110,6 +118,7 @@ function play_transform() {
       sprite.style.backgroundPosition = `-${position}px 0px`;
     } else {
       clearInterval(intervalId);
+      // 2. Start the game engine after the tutorial text has been shown
       setTimeout(function() {
         startGameEngine();
       }, 9000);
@@ -140,16 +149,6 @@ document.addEventListener("DOMContentLoaded", function () {
           "nb_sides": 0
         }
       },
-      // "opacity": {
-      //   "value": 1,
-      //   "random": true,
-      //   "anim": {
-      //     "enable": true,
-      //     "speed": 1,
-      //     "opacity_min": 0,
-      //     "sync": false
-      //   }
-      // },
       "size": {
         "value": 2,
         "random": true,
@@ -227,15 +226,9 @@ document.addEventListener("DOMContentLoaded", function () {
     // }
   });
 
+  // If we're on the /game page, start the particles out moving downwards
   if (window.location.pathname.indexOf('game') !== -1) {
     particles.pJS.particles.move.speed = -10;
   }
 
-  // document.getElementById("start-game").onmouseenter = function() {
-  //   document.getElementById("icon-audio").play();
-  // };
-
-  // document.getElementById("start-game").addEventListener("mouseenter", function() {
-  //   document.getElementById("icon-audio").play();
-  // });
 }, false);

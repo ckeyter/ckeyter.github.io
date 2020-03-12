@@ -4,7 +4,6 @@ const TILE_SIZE = 44;
 // Spawn an asteroid every x milliseconds
 const ASTEROID_SPAWN_TIME = 600;
 const ENEMY_SHOOT_TIME = 1500;
-
 const ANGLES = [0, 90, 180, 270];
 
 const MAX_LIVES = 3;
@@ -666,8 +665,9 @@ function spawnAsteroid(asteroid) {
   asteroid.setPosition(x, -TILE_SIZE);
   asteroid.setVisible(true);
 
-  let angleIndex = Phaser.Math.Between(0, 3);
-  asteroid.setRotation(ANGLES[angleIndex]);
+//  let angleIndex = Phaser.Math.Between(0, 3);
+//  asteroid.setRotation(ANGLES[angleIndex]);
+  asteroid.setRotation(Phaser.Math.Between(0, 360));
 
   let frameNo = Phaser.Math.Between(0, 4);
   asteroid.setFrame(frameNo);
@@ -1156,10 +1156,10 @@ function spawnWaveOne(scene) {
   // Launch the convoy
   queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, oneThirdX);
   queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, twoThirdsX);
+  queueSpawnEnemy(2000, scene, EnemyType.BASIC, 0, middleX);
 
-  queueSpawnEnemy(6000, scene, EnemyType.BASIC, 0, middleX);
-  queueSpawnEnemy(2000, scene, EnemyType.BASIC, 0, quarterX);
-  queueSpawnEnemy(0, scene, EnemyType.BASIC, 0, threeQuartersX);
+  queueSpawnEnemy(1000, scene, EnemyType.BASIC, 0, quarterX);
+  queueSpawnEnemy(0, scene, EnemyType.BASIC, 0, quarterX + (TILE_SIZE * 2));
 
   queueSpawnEnemy(5000, scene, EnemyType.SHOOTER, 1, middleX);
   queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, quarterX);
