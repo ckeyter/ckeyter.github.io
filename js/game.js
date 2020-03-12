@@ -175,7 +175,7 @@ class SpriteGroup {
       if (sprite.type === EnemyType.SHOOTER) {
         removeEnemyShooter(this.scene, sprite);
       }
-      if (Object.keys(this.scene.activeEnemies).length === 0) {
+      if (Object.keys(this.scene.activeEnemies).length === 0 && this.scene.spawnQueue.length === 0) {
         finishWave(this.scene);
       }
     }
@@ -837,8 +837,14 @@ function onCollide(scene, collision) {
     if (bodyA.hasOwnProperty('explosive') && bodyA.explosive) {
       bodyB.group.kill(bodyB, true);
     }
+    if (bodyB.hasOwnProperty('explosive') && bodyB.explosive) {
+      bodyA.group.kill(bodyA, true);
+    }
   }
   else if (nameB === 'enemies' && nameA === 'asteroids') {
+    if (bodyA.hasOwnProperty('explosive') && bodyA.explosive) {
+      bodyB.group.kill(bodyB, true);
+    }
     if (bodyB.hasOwnProperty('explosive') && bodyB.explosive) {
       bodyA.group.kill(bodyA, true);
     }
@@ -1032,7 +1038,7 @@ function start_game_engine() {
 
 
 document.addEventListener('DOMContentLoaded', function () {
-  start_game_engine();
+  // start_game_engine();
   // let sprite = document.getElementById('sprite-transform');
   // sprite.style.display = 'none';
 });

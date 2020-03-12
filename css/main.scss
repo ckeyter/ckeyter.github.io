@@ -177,3 +177,18 @@ canvas {
 .resume-list {
   font-size: 32px;
 }
+.tutorial {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-transform: uppercase;
+  text-align: center;
+  color: $pink;
+  font-size: 48px;
+  display: none;
+  width: 600px;
+}
+#tutorial-1 {
+  width: 700px;
+}

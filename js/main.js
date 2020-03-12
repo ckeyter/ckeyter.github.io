@@ -12,19 +12,19 @@ function game_intro_phase_1() {
       particles.pJS.particles.move.speed = particles.pJS.particles.move.speed - 0.01
     }
   }, 10);
-  
+
   // 2. Secretly replace start-game icon with standalone icon that will fly
   //    away from the menu and do the transform animation
   let start_game = document.getElementById("start-game");
   let sprite = document.getElementById("sprite-transform");
   let rect = start_game.getBoundingClientRect();
-  
+
   sprite.style.position = "absolute";
   sprite.style.left = rect.left + "px";
   sprite.style.top = rect.top + "px";
   sprite.style.display = "block";
   start_game.style.display = "none";
-  
+
   // 3. Prepare things so that the menu can be flown away from
   let menu = document.getElementById("menu");
   let menu_rect = menu.getBoundingClientRect();
@@ -34,8 +34,30 @@ function game_intro_phase_1() {
   menu.style.margin = "0px";
   menu.style.left = menu_rect.left + "px";
   menu.style.top = menu_top + "px";
-  
+
   particles.pJS.interactivity.events.onhover.enable = false;
+
+  // 4. Display tutorial text
+  setTimeout(function() {
+    let tutorial_1 = document.getElementById("tutorial-1");
+    let tutorial_2 = document.getElementById("tutorial-2");
+    let tutorial_3 = document.getElementById("tutorial-3");
+    tutorial_1.style.display = "inline";
+
+    setTimeout(function() {
+      tutorial_1.style.display = "none";
+      tutorial_2.style.display = "inline";
+
+      setTimeout(function() {
+        tutorial_2.style.display = "none";
+        tutorial_3.style.display = "inline";
+
+        setTimeout(function() {
+          tutorial_3.style.display = "none";
+        }, 4000);
+      }, 4000);
+    }, 4000);
+  }, 7000);
 }
 
 function game_intro_phase_2() {
@@ -88,7 +110,9 @@ function play_transform() {
       sprite.style.backgroundPosition = `-${position}px 0px`;
     } else {
       clearInterval(intervalId);
-      start_game_engine();
+      setTimeout(function() {
+        start_game_engine();
+      }, 9000);
     }
   }, 130);
 }
