@@ -456,6 +456,11 @@ class GameScene extends Phaser.Scene {
       align: 'center',
     });
 
+    let sprite = document.getElementById('sprite-transform');
+    if (sprite) {
+      sprite.style.display = 'none';
+    }
+    
     initGame(this);
   }
 
@@ -996,13 +1001,13 @@ function gameOver(scene, player) {
 
   let x = player.x;
   let y = player.y;
-  player.setPosition(-TILE_SIZE, 0);
+  player.setPosition(-TILE_SIZE, (-TILE_SIZE * 2));
   explode(scene.explosionGroup.getFirstDead(), x, y);
 
   displayText(scene, 'GAME OVER\nPress "space" to retry\nPress "q" to quit');
 }
 
-function start_game_engine(placeholder_ship=null) {
+function start_game_engine() {
   let config = {
     type: Phaser.CANVAS,
     antialias: false,
@@ -1024,10 +1029,6 @@ function start_game_engine(placeholder_ship=null) {
   };
 
   const game = new Phaser.Game(config);
-
-  if (placeholder_ship) {
-    placeholder_ship.style.display = 'none';
-  }
 }
 
 

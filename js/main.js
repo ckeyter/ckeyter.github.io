@@ -81,19 +81,15 @@ function game_intro_phase_2() {
 function play_transform() {
   let sprite = document.getElementById("sprite-transform");
   let position = 0;
-  
-  let transform_interval = setInterval(function() {
-    if (position < 704) {
+
+  let intervalId = setInterval(function() {
+    if (position < 660) {
       position += 44;
+      sprite.style.backgroundPosition = `-${position}px 0px`;
     } else {
-      position = 704;
-      clearInterval(transform_interval);
-      // setup_physics();
-      start_game_engine(sprite);
-      // let sprite = document.getElementById('sprite-transform');
+      clearInterval(intervalId);
+      start_game_engine();
     }
-  
-    sprite.style.backgroundPosition = `-${position}px 0px`;
   }, 130);
 }
 
@@ -145,8 +141,7 @@ document.addEventListener("DOMContentLoaded", function () {
       },
       "move": {
         "enable": true,
-        "speed": -10,
-        // "speed": 2,
+        "speed": 2,
         "direction": "top",
         "random": true,
         "straight": true,
