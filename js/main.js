@@ -1,6 +1,8 @@
 let particles = null;
 
 function game_intro_phase_1() {
+  document.getElementById("start-audio").play();
+
   // 1. Stop particles and start phase 2 when they have stopped
   let id = setInterval(function() {
     if (particles.pJS.particles.move.speed <= 0) {
@@ -26,7 +28,7 @@ function game_intro_phase_1() {
   // 3. Prepare things so that the menu can be flown away from
   let menu = document.getElementById("menu");
   let menu_rect = menu.getBoundingClientRect();
-  let menu_top = menu_rect.top + 55;
+  let menu_top = menu_rect.top + 44;
 
   // menu.style.position = "absolute";
   menu.style.margin = "0px";
@@ -62,7 +64,7 @@ function game_intro_phase_2() {
       }
     }, 2);
 
-    let sprite_top = menu.getBoundingClientRect().top - 55;
+    let sprite_top = menu.getBoundingClientRect().top - 44;
 
     let sprite_interval = setInterval(function() {
       if (sprite.style.height + sprite_top > window.innerHeight / 2) {
@@ -81,13 +83,14 @@ function play_transform() {
   let position = 0;
   
   let transform_interval = setInterval(function() {
-    if (position < 825) {
-      position += 55;
+    if (position < 704) {
+      position += 44;
     } else {
-      position = 825;
+      position = 704;
       clearInterval(transform_interval);
       // setup_physics();
-      start_game_engine();
+      start_game_engine(sprite);
+      // let sprite = document.getElementById('sprite-transform');
     }
   
     sprite.style.backgroundPosition = `-${position}px 0px`;
@@ -204,4 +207,12 @@ document.addEventListener("DOMContentLoaded", function () {
     //   }
     // }
   });
+
+  // document.getElementById("start-game").onmouseenter = function() {
+  //   document.getElementById("icon-audio").play();
+  // };
+
+  // document.getElementById("start-game").addEventListener("mouseenter", function() {
+  //   document.getElementById("icon-audio").play();
+  // });
 }, false);

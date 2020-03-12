@@ -60,6 +60,17 @@ class SpriteGroup {
     this.capacity = capacity;
     this.name = imageName;
     this.scene = scene;
+    this.useSpriteType  = useSpriteType;
+
+    this.width = width;
+    this.height = height;
+    this.displayHeight = displayHeight;
+    this.displayWidth = displayWidth;
+    this.mass = mass;
+
+    this.collisionCategory = collisionCategory;
+    this.collidesWithCategory = collidesWithCategory;
+    this.onCollideCallback = onCollideCallback;
 
     this.activeSprites = [];
     this.deadSprites = [];
@@ -76,55 +87,65 @@ class SpriteGroup {
       }
     }
 
-    for (let i = 0; i < this.capacity; i++) {
-      let sprite;
-
-      if (useSpriteType) {
-        sprite = scene.matter.add.sprite(width, height, imageName);
-      } else {
-        sprite = scene.matter.add.image(width, height, imageName);
-      }
-
-      sprite.group = this;
-      sprite.setDisplaySize(displayWidth, displayHeight);
-      sprite.setVisible(false);
-      sprite.setFixedRotation();
-      sprite.setPosition(this.voidX, this.voidY);
-      sprite.setMass(mass);
-
-      sprite.setFriction(0);
-      sprite.setFrictionAir(0);
-      sprite.setFrictionStatic(0);
-
-      sprite.body.ignoreGravity = true;
-      // sprite.body.setAllowGravity(false);
-      // sprite.body.setAllowDrag(false);
-
-      sprite.body.isSleeping = true;
-      sprite.body.label = imageName;
-
-      if (collisionCategory != null) {
-        sprite.setCollisionCategory(collisionCategory);
-      }
-
-      if (collidesWithCategory != null) {
-        sprite.setCollidesWith(collidesWithCategory);
-      }
-      
-      if (onCollideCallback != null) {
-        sprite.setOnCollide(function(collision) {
-          onCollideCallback(scene, collision);
-        });
-      }
-
-      this.deadSprites.push(sprite);
+    // Create only a few sprites to reduce loading time
+    for (let i = 0; i < 5; i++) {
+      this.createSprite();
     }
   }
-  
+
+  createSprite() {
+    let sprite;
+
+    if (this.useSpriteType) {
+      sprite = this.scene.matter.add.sprite(this.width, this.height, this.name);
+    } else {
+      sprite = this.scene.matter.add.image(this.width, this.height, this.name);
+    }
+
+    sprite.group = this;
+    sprite.setDisplaySize(this.displayWidth, this.displayHeight);
+    sprite.setVisible(false);
+    sprite.setFixedRotation();
+    sprite.setPosition(this.voidX, this.voidY);
+    sprite.setMass(this.mass);
+
+    sprite.setFriction(0);
+    sprite.setFrictionAir(0);
+    sprite.setFrictionStatic(0);
+
+    sprite.body.ignoreGravity = true;
+    // sprite.body.setAllowGravity(false);
+    // sprite.body.setAllowDrag(false);
+
+    sprite.body.isSleeping = true;
+    sprite.body.label = this.name;
+
+    if (this.collisionCategory != null) {
+      sprite.setCollisionCategory(this.collisionCategory);
+    }
+
+    if (this.collidesWithCategory != null) {
+      sprite.setCollidesWith(this.collidesWithCategory);
+    }
+
+    if (this.onCollideCallback != null) {
+      let group = this;
+      sprite.setOnCollide(function(collision) {
+        group.onCollideCallback(group.scene, collision);
+      });
+    }
+
+    this.deadSprites.push(sprite);
+  }
+
   getFirstDead() {
-    if (this.deadSprites.length == 0) {
-      console.log('WARNING: SpriteGroup "' + this.name + '" has run out of dead sprites.');
-      return null;
+    if (this.deadSprites.length === 0) {
+      if (this.activeSprites.length < this.capacity) {
+        this.createSprite();
+      } else {
+        console.log('WARNING: SpriteGroup "' + this.name + '" has run out of dead sprites.');
+        return null;
+      }
     }
 
     let sprite = this.deadSprites.shift();
@@ -150,10 +171,12 @@ class SpriteGroup {
     }
 
     if (this.name === 'enemies') {
+      delete this.scene.activeEnemies[sprite.id];
       if (sprite.type === EnemyType.SHOOTER) {
         removeEnemyShooter(this.scene, sprite);
       }
-      if (this.scene.spawnQueue.length === 0 && this.deadSprites.length === this.capacity - 1) {
+      console.log(this.scene.activeEnemies);
+      if (this.scene.activeEnemies.length === 0) {
         finishWave(this.scene);
       }
     }
@@ -225,7 +248,7 @@ class GameScene extends Phaser.Scene {
     this.load.spritesheet('asteroids', '/images/sprites/asteroids.png', {
       frameWidth: 11,
       frameHeight: 11,
-      endFrame: 4
+      endFrame: 9
     });
 
     this.load.spritesheet('enemies', '/images/sprites/enemies-2.png', {
@@ -240,6 +263,7 @@ class GameScene extends Phaser.Scene {
     this.load.audio('transform', '/audio/transform.ogg');
     this.load.audio('alarm', '/audio/alarm.wav');
     this.load.audio('special-hit', '/audio/special-hit.wav');
+    this.load.audio('win', '/audio/game-win.ogg');
 
     this.load.audio('turbulence', '/audio/turbulence.wav');
     this.load.audio('turbulence-2', '/audio/turbulence-2.wav');
@@ -327,7 +351,7 @@ class GameScene extends Phaser.Scene {
     this.player.setAngle(270);
     this.player.setFrictionAir(0.05); // Default is 0.01
     this.player.setMass(50); // Default is 3.025
-
+    
     // this.player.setTint(0x000000);
     this.player.moveSpeed = 0.08;
     
@@ -368,7 +392,8 @@ class GameScene extends Phaser.Scene {
       'right': [ 'right', 'd' ],
       'up': [ 'up', 'w' ],
       'down': [ 'down', 's' ],
-      'shoot': [ 'space', 'f', 'z', 'x' ]
+      'shoot': [ 'space', 'f', 'z', 'x' ],
+      'quit': [ 'q' ]
     };
 
     this.inputKeys = this.input.keyboard.addKeys({
@@ -379,6 +404,7 @@ class GameScene extends Phaser.Scene {
         f: Phaser.Input.Keyboard.KeyCodes.F,
         z: Phaser.Input.Keyboard.KeyCodes.Z,
         x: Phaser.Input.Keyboard.KeyCodes.X,
+        q: Phaser.Input.Keyboard.KeyCodes.Q,
         up: Phaser.Input.Keyboard.KeyCodes.UP,
         down: Phaser.Input.Keyboard.KeyCodes.DOWN,
         left: Phaser.Input.Keyboard.KeyCodes.LEFT,
@@ -398,31 +424,32 @@ class GameScene extends Phaser.Scene {
     // 6. Start audio
     this.sounds = {};
 
-    this.sounds.shootGroup = new SoundGroup(this, 10, 'shoot', 0.5);
+    this.sounds.shootGroup = new SoundGroup(this, 10, 'shoot');
 
     this.sounds.start = this.sound.add('start');
     this.sounds.start.play();
 
     this.sounds.transform = this.sound.add('transform');
     this.sounds.alarm = this.sound.add('alarm');
-    this.sounds.alarm.setVolume(0.5);
+    this.sounds.alarm.setVolume(0.7);
     this.sounds.specialHit = this.sound.add('special-hit');
+    this.sounds.win = this.sound.add('win');
 
-    this.sounds.turbulenceGroup = new SoundGroup(this, 10, 'turbulence');
-    this.sounds.turbulence2Group = new SoundGroup(this, 10, 'turbulence-2');
-    this.sounds.turbulence3Group = new SoundGroup(this, 10, 'turbulence-3');
+    this.sounds.turbulenceGroup = new SoundGroup(this, 10, 'turbulence', 2);
+    this.sounds.turbulence2Group = new SoundGroup(this, 10, 'turbulence-2', 2);
+    this.sounds.turbulence3Group = new SoundGroup(this, 10, 'turbulence-3', 2);
 
     let music1 = this.sound.add('music-1');
-    music1.setVolume(0.2);
+    music1.setVolume(0.3);
     music1.setLoop(true);
     this.sounds.music1 = music1;
 
-    window.setTimeout(function() {
-      music1.play();
-    }, 1500);
+    // window.setTimeout(function() {
+    //   music1.play();
+    // }, 1500);
 
     // 7. Start wave one
-    this.alertText = this.add.text(window.innerWidth / 2 - 100, window.innerHeight / 2 - 100, 'BISCUITS', {
+    this.alertText = this.add.text(0, 0, 'BISCUITS', {
       fontFamily: 'Monogram',
       fontSize: '60px',
       color: '#DC143C',
@@ -463,24 +490,30 @@ class GameScene extends Phaser.Scene {
         this.player.thrustBack(this.player.moveSpeed);
       }
     }
+    else {
+      if (this.isActionPressed('quit')) {
+        window.location = '/';
+      }
+      this.restartDelay += delta;
+    }
     
     if (this.isActionPressed('shoot')) {
       if (this.shootPressedDuration == 0 || this.shootPressedDuration >= 1000) {
-        if (this.isGameOver) {
-          initGame(this);
+        if (this.isGameOver && !this.restartTriggered) {
+          if (this.restartDelay < 2000) {
+            window.setTimeout(function() {
+              restartGame(this);
+            }, 2000 - this.restartDelay);
+          } else {
+            restartGame(this);
+          }
         }
-        // console.log('firing');
-        // if (this.sounds.shoot.isPlaying) {
-        //   this.sounds.shoot.seek = 0;
-        // } else {
-        //   this.sounds.shoot.play();
-        // }
-        this.sounds.shootGroup.play();
-        // transformPlayer(this, this.player);
-
-        let bullet = this.bulletGroup.getFirstDead();
-        fireBullet(bullet, this.player.x, this.player.y - 22);
-        this.shootPressedDuration = 0;
+        else {
+          this.sounds.shootGroup.play();
+          let bullet = this.bulletGroup.getFirstDead();
+          fireBullet(bullet, this.player.x, this.player.y - 22);
+          this.shootPressedDuration = 0;
+        }
       }
       this.shootPressedDuration += delta;
 
@@ -506,6 +539,7 @@ class GameScene extends Phaser.Scene {
         for (let index in this.enemyShooters) {
           let shooter = this.enemyShooters[index];
           let bullet = this.enemyBulletGroup.getFirstDead();
+          bullet.setRotation(0);
           fireBullet(bullet, shooter.x, shooter.y, 0, 5);
 
           if (shooter.type === EnemyType.MULTI_SHOOTER) {
@@ -533,23 +567,51 @@ class GameScene extends Phaser.Scene {
   }
 }
 
-function initGame(scene) {
+function initGame(scene, flyIn=false) {
   scene.alertText.setVisible(false);
   scene.kills = 0;
   scene.lives = MAX_LIVES;
 
+  scene.activeEnemies = {};
   scene.enemyShooters = [];
   scene.spawnQueue = [];
   scene.isGameOver = false;
+  scene.restartDelay = 0;
+  scene.restartTriggered = false;
 
   scene.player.setFrame(2);
-  scene.player.setVisible(true);
   scene.player.body.isSleeping = false;
+  scene.player.setVisible(true);
   scene.player.mode = PlayerMode.NORMAL;
-  scene.player.setPosition((window.innerWidth / 2), (window.innerHeight / 2) + 28);
+
+  if (flyIn) {
+    scene.player.setPosition((window.innerWidth / 2), window.innerHeight);
+    scene.player.thrust(0.8);
+  } else {
+    scene.player.setPosition((window.innerWidth / 2), (window.innerHeight / 2) + 28);
+  }
 
   scene.currWave = 1;
   startWave(scene, scene.currWave);
+}
+
+function restartGame(scene) {
+  this.restartTriggered = true;
+
+  if (scene.activeEnemies.length > 0) {
+    for (let key in scene.activeEnemies) {
+      let enemy = scene.activeEnemies[key];
+      enemy.group.kill(enemy, true);
+    }
+    scene.sounds.turbulenceGroup.play();
+    scene.sounds.turbulence2Group.play();
+  }
+
+  scene.alertText.setVisible(false);
+  window.setTimeout(function() {
+    scene.sounds.start.play();
+    initGame(scene, true);
+  }, 1000);
 }
 
 function transformPlayer(scene, player) {
@@ -583,6 +645,8 @@ function spawnAsteroid(asteroid) {
 
   let frameNo = Phaser.Math.Between(0, 4);
   asteroid.setFrame(frameNo);
+  asteroid.normalFrame = frameNo;
+  asteroid.hurtFrame = frameNo + 5;
 
   let velocityX = 0;//Phaser.Math.Between(-1, 1);
   let velocityY = Phaser.Math.Between(1, 3);
@@ -592,22 +656,27 @@ function spawnAsteroid(asteroid) {
 function removeEnemyShooter(scene, enemy) {
   let i = scene.enemyShooters.length;
 
-  while (i >= 0 && i <= scene.enemyShooters.length) {
+  while (i > 0 && i <= scene.enemyShooters.length) {
     i--;
     let shooter = scene.enemyShooters[i];
-    if (shooter.id === enemy.id) {
+    if (shooter.body.id === enemy.body.id) {
       scene.enemyShooters.splice(i, 1);
       return;
     }
   }
 }
 
-function initEnemy(enemy, type, frame, x, y, velocityX, velocityY) {
+function initEnemy(scene, enemy, type, frame, x, y, velocityX, velocityY, mass=10) {
+  scene.activeEnemies[enemy.body.id] = enemy;
+  // console.log(scene.activeEnemies);
   enemy.setFrame(frame);
   enemy.setPosition(x, y);
   enemy.setVisible(true);
   enemy.setVelocity(velocityX, velocityY);
+  enemy.setMass(mass);
   enemy.type = type;
+  enemy.normalFrame = frame;
+  enemy.hurtFrame = enemy.normalFrame + 12;
 }
 
 function queueSpawnEnemy(delay, scene, type, frame, x, velocityX=0, velocityY=2) {
@@ -619,7 +688,7 @@ function queueSpawnEnemy(delay, scene, type, frame, x, velocityX=0, velocityY=2)
     frame: frame,
     x: x,
     velocityX: velocityX,
-    velocityY: velocityY
+    velocityY: velocityY,
   });
 }
 
@@ -630,11 +699,11 @@ function spawnEnemy(scene, type, frame, x, velocityX=0, velocityY=2) {
   }
 
   if (type === EnemyType.SHOOTER) {
-    initEnemy(enemy, type, frame, x, -TILE_SIZE, velocityX, velocityY);
+    initEnemy(scene, enemy, type, frame, x, -TILE_SIZE, velocityX, velocityY);
     scene.enemyShooters.push(enemy);
   }
   else if (type === EnemyType.MULTI_SHOOTER) {
-    initEnemy(enemy, type, frame, x, -TILE_SIZE, velocityX, velocityY);
+    initEnemy(scene, enemy, type, frame, x, -TILE_SIZE, velocityX, velocityY);
     scene.enemyShooters.push(enemy);
   }
   else if (type === EnemyType.KNIGHT) {
@@ -643,8 +712,8 @@ function spawnEnemy(scene, type, frame, x, velocityX=0, velocityY=2) {
       return;
     }
 
-    initEnemy(enemy, type, 6, x, -TILE_SIZE * 2, velocityX, velocityY);
-    initEnemy(enemy2, type, 7, x, -TILE_SIZE, velocityX, velocityY);
+    initEnemy(scene, enemy, type, 6, x, -TILE_SIZE * 2, velocityX, velocityY, 50);
+    initEnemy(scene, enemy2, type, 7, x, -TILE_SIZE, velocityX, velocityY, 50);
 
     // var compoundBody = Phaser.Physics.Matter.Matter.Body.create({
     //     parts: [ enemy.body, enemy2.body ]
@@ -667,10 +736,10 @@ function spawnEnemy(scene, type, frame, x, velocityX=0, velocityY=2) {
       return;
     }
 
-    initEnemy(enemy2, type, 8, x - TILE_SIZE, -TILE_SIZE * 2, velocityX, velocityY);
-    initEnemy(enemy3, type, 9, x, -TILE_SIZE * 2, velocityX, velocityY);
-    initEnemy(enemy4, type, 10, x + TILE_SIZE, -TILE_SIZE * 2, velocityX, velocityY);
-    initEnemy(enemy, type, 11, x, -TILE_SIZE, velocityX, velocityY);
+    initEnemy(scene, enemy2, type, 8, x - TILE_SIZE, -TILE_SIZE * 2, velocityX, velocityY, 50);
+    initEnemy(scene, enemy3, type, 9, x, -TILE_SIZE * 2, velocityX, velocityY, 50);
+    initEnemy(scene, enemy4, type, 10, x + TILE_SIZE, -TILE_SIZE * 2, velocityX, velocityY, 50);
+    initEnemy(scene, enemy, type, 11, x, -TILE_SIZE, velocityX, velocityY, 50);
 
     // var compoundBody = Phaser.Physics.Matter.Matter.Body.create({
     //     parts: [ enemy.body, enemy2.body ]
@@ -688,7 +757,7 @@ function spawnEnemy(scene, type, frame, x, velocityX=0, velocityY=2) {
     // scene.matter.add.joint(enemy, enemy2, 0, 1);
   }
   else {
-    initEnemy(enemy, type, frame, x, -TILE_SIZE, velocityX, velocityY);
+    initEnemy(scene, enemy, type, frame, x, -TILE_SIZE, velocityX, velocityY);
   }
 }
 
@@ -738,11 +807,23 @@ function onCollide(scene, collision) {
       handleCollidePlayer(scene, bodyA, bodyB);
     }
   }
+  else if (nameA === 'player') {
+    if (nameB === 'asteroids' || nameB === 'enemies' || nameB === 'bullet-enemy') {
+      handleCollidePlayer(scene, bodyB, bodyA);
+    }
+  }
   else if (nameB === 'asteroids' && nameA === 'bullet-enemy') {
     if (bodyA.x >= 0 && bodyA.y >= 0 && bodyA.x <= window.innerWidth && bodyA.y <= window.innerHeight) {
-      // console.log("X: " + bodyB.x + " | Y: " + bodyB.y);
       bodyB.group.kill(bodyB, true);
       bodyA.group.kill(bodyA, false);
+      scene.sounds.turbulenceGroup.play();
+      scene.sounds.turbulence2Group.play();
+    }
+  }
+  else if (nameB === 'bullet-enemy' && nameA === 'asteroids') {
+    if (bodyB.x >= 0 && bodyB.y >= 0 && bodyB.x <= window.innerWidth && bodyB.y <= window.innerHeight) {
+      bodyA.group.kill(bodyA, true);
+      bodyB.group.kill(bodyB, false);
       scene.sounds.turbulenceGroup.play();
       scene.sounds.turbulence2Group.play();
     }
@@ -753,11 +834,22 @@ function onCollide(scene, collision) {
       bodyB.group.kill(bodyB, true);
     }
   }
+  else if (nameB === 'enemies' && nameA === 'asteroids') {
+    if (bodyB.hasOwnProperty('explosive') && bodyB.explosive) {
+      bodyA.group.kill(bodyA, true);
+    }
+  }
   else if (nameA === 'bullet') {
     if (nameB === 'enemies') {
       updateKills(scene);
     }
     handleCollideBullet(scene, bodyA, bodyB);
+  }
+  else if (nameB === 'bullet') {
+    if (nameA === 'enemies') {
+      updateKills(scene);
+    }
+    handleCollideBullet(scene, bodyB, bodyA);
   }
   else if (nameA === 'enemies' && nameB === 'enemies') {
     if ((bodyA.hasOwnProperty('explosive') && bodyA.explosive) ||
@@ -770,6 +862,30 @@ function onCollide(scene, collision) {
       scene.sounds.turbulence2Group.play();
     }
   }
+  else if (nameA === 'asteroids' && (bodyB.type === EnemyType.KNIGHT || bodyB.type === EnemyType.BUNNY)) {
+    bodyA.group.kill(bodyA, true);
+    scene.sounds.turbulenceGroup.play();
+    scene.sounds.turbulence2Group.play();
+
+    // let head = bodyB.head;
+    // 
+    // for (let i = 0; i < head.destroyPriorities.length; i++) {
+    //   let enemy = head.destroyPriorities[i];
+    //   enemy.setVelocity(0, 2);
+    // }
+  }
+  else if (nameB === 'asteroids' && (bodyA.type === EnemyType.KNIGHT || bodyA.type === EnemyType.BUNNY)) {
+    bodyB.group.kill(bodyB, true);
+    scene.sounds.turbulenceGroup.play();
+    scene.sounds.turbulence2Group.play();
+
+    // let head = bodyB.head;
+    // 
+    // for (let i = 0; i < head.destroyPriorities.length; i++) {
+    //   let enemy = head.destroyPriorities[i];
+    //   enemy.setVelocity(0, 2);
+    // }
+  }
 }
 
 function handleCollidePlayer(scene, object, player) {
@@ -779,26 +895,39 @@ function handleCollidePlayer(scene, object, player) {
   scene.sounds.turbulence2Group.play();
 
   if (player.mode === PlayerMode.SPECIAL) {
+    console.log("SPECIAL collides with " + object.body.label);
     transformPlayer(scene, player);
     scene.sounds.specialHit.play();
-
-    // if (object.body.label === 'bullet-enemy') {
-    // 
-    // }
+    explode(scene.explosionGroup.getFirstDead(), object.x, object.y);
 
     if (object.body.label === 'bullet-enemy') {
       object.setVelocity(player.body.velocity.x * 5, player.body.velocity.y * 5);
     }
 
-    explode(scene.explosionGroup.getFirstDead(), object.x, object.y);
-    // console.log(object.frame.sourceIndex + 1);
-    object.setFrame(object.frame.name + 12);
+    object.setFrame(object.hurtFrame);
     object.explosive = true;
-    setTimeout(function() {
-      object.group.kill(object, true);
-      scene.sounds.turbulenceGroup.play();
-      scene.sounds.turbulence2Group.play();
-    }, 1500);
+    object.deathTimer = 0;
+
+    let intervalId = window.setInterval(function() {
+      if (object.deathTimer === 1500) {
+        clearInterval(intervalId);
+        object.group.kill(object, true);
+        scene.sounds.turbulenceGroup.play();
+        scene.sounds.turbulence2Group.play();
+      }
+
+      if (object.frame.name === object.normalFrame) {
+        object.setFrame(object.hurtFrame);
+      } else {
+        object.setFrame(object.normalFrame);
+      }
+      object.deathTimer += 100;
+    }, 100);
+    // setTimeout(function() {
+    //   object.group.kill(object, true);
+    //   scene.sounds.turbulenceGroup.play();
+    //   scene.sounds.turbulence2Group.play();
+    // }, 1500);
   }
   else {
     object.group.kill(object, true);
@@ -819,12 +948,21 @@ function handleCollidePlayer(scene, object, player) {
 }
 
 function handleCollideBullet(scene, bullet, victim) {
+  // console.log("Bullet hit victim: " + victim.body.label);
+
   if (victim.hasOwnProperty('head')) {
     victim = victim.head;
   }
 
   if (victim.hasOwnProperty('destroyPriorities') && victim.destroyPriorities.length > 0) {
+    // victim.setVelocity(0, 2);
     let nextVictim = victim.destroyPriorities.shift();
+
+    for (let i = 0; i < victim.destroyPriorities.length; i++) {
+      let enemy = victim.destroyPriorities[i];
+      enemy.setVelocity(0, 2);
+    }
+
     victim = nextVictim;
   }
 
@@ -839,6 +977,16 @@ function gameOver(scene, player) {
     return;
   }
 
+  let counter = 3;
+  let intervalId = window.setInterval(function() {
+    scene.sounds.alarm.play();
+    if (counter > 0) {
+      counter--;
+    } else {
+      clearInterval(intervalId);
+    }
+  }, 400);
+
   scene.isGameOver = true;
   scene.cameras.main.shake(1000, 0.004, true);
   scene.spawnQueue = [];
@@ -851,11 +999,10 @@ function gameOver(scene, player) {
   player.setPosition(-TILE_SIZE, 0);
   explode(scene.explosionGroup.getFirstDead(), x, y);
 
-  scene.alertText.setText('GAME OVER');
-  scene.alertText.setVisible(true);
+  displayText(scene, 'GAME OVER\nPress "space" to retry\nPress "q" to quit');
 }
 
-function start_game_engine() {
+function start_game_engine(placeholder_ship=null) {
   let config = {
     type: Phaser.CANVAS,
     antialias: false,
@@ -877,11 +1024,15 @@ function start_game_engine() {
   };
 
   const game = new Phaser.Game(config);
+
+  if (placeholder_ship) {
+    placeholder_ship.style.display = 'none';
+  }
 }
 
 
 document.addEventListener('DOMContentLoaded', function () {
-  start_game_engine();
+  // start_game_engine();
   // let sprite = document.getElementById('sprite-transform');
   // sprite.style.display = 'none';
 });
@@ -898,8 +1049,8 @@ function finishWave(scene) {
   }
 
   if (scene.currWave > 3) {
-    scene.alertText.setText('GREAT SUCCESS! YOU WIN!');
-    scene.alertText.setVisible(true);
+    displayText(scene, 'GREAT SUCCESS! YOU WIN!');
+    scene.sounds.win.play();
 
     window.setTimeout(function() {
       scene.alertText.setVisible(false);
@@ -909,8 +1060,7 @@ function finishWave(scene) {
     return;
   }
 
-  scene.alertText.setText('WAVE COMPLETE!');
-  scene.alertText.setVisible(true);
+  displayText(scene, 'WAVE COMPLETE!');
   
   window.setTimeout(function() {
     scene.alertText.setVisible(false);
@@ -921,8 +1071,7 @@ function finishWave(scene) {
 
 function startWave(scene, waveNumber) {
   window.setTimeout(function() {
-    scene.alertText.setText('WAVE ' + waveNumber);
-    scene.alertText.setVisible(true);
+    displayText(scene, 'WAVE ' + waveNumber);
     
     window.setTimeout(function() {
       scene.alertText.setVisible(false);
@@ -937,6 +1086,14 @@ function startWave(scene, waveNumber) {
       }
     }, 2000);
   }, 2000);
+}
+
+function displayText(scene, text) {
+  scene.alertText.setText(text);
+  let textMiddleX = scene.alertText.width / 2;
+  let textMiddleY = scene.alertText.height / 2;
+  scene.alertText.setPosition(window.innerWidth / 2 - textMiddleX, window.innerHeight / 2 - textMiddleY);
+  scene.alertText.setVisible(true);
 }
 
 function spawnWaveOne(scene) {
@@ -972,8 +1129,7 @@ function spawnWaveOne(scene) {
   queueSpawnEnemy(2000, scene, EnemyType.BASIC, 0, betweenX3);
   queueSpawnEnemy(2000, scene, EnemyType.SHOOTER, 2, betweenX4);
 
-  // Last enemy needs to be marked
-  queueSpawnEnemy(1000, scene, EnemyType.SHOOTER, 2, middleX, 0, 2, true);
+  queueSpawnEnemy(1000, scene, EnemyType.SHOOTER, 2, middleX);
 }
 
 function spawnWaveTwo(scene) {
@@ -1015,7 +1171,7 @@ function spawnWaveTwo(scene) {
   queueSpawnEnemy(0, scene, EnemyType.SHOOTER, 1, enemy10X);
   queueSpawnEnemy(2000, scene, EnemyType.KNIGHT, -1, middleX);
   queueSpawnEnemy(2000, scene, EnemyType.SHOOTER, 1, enemy11X);
-  queueSpawnEnemy(0, scene, EnemyType.SHOOTER, 1, enemy12X, 0, 2, true);
+  queueSpawnEnemy(0, scene, EnemyType.SHOOTER, 1, enemy12X);
 }
 
 function spawnWaveThree(scene) {
