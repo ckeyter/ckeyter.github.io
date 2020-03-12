@@ -171,12 +171,11 @@ class SpriteGroup {
     }
 
     if (this.name === 'enemies') {
-      delete this.scene.activeEnemies[sprite.id];
+      delete this.scene.activeEnemies[sprite.body.id];
       if (sprite.type === EnemyType.SHOOTER) {
         removeEnemyShooter(this.scene, sprite);
       }
-      console.log("Active Enemies: " + this.scene.activeEnemies.length);
-      if (this.scene.activeEnemies.length === 0) {
+      if (Object.keys(this.scene.activeEnemies).length === 0) {
         finishWave(this.scene);
       }
     }
@@ -506,8 +505,9 @@ class GameScene extends Phaser.Scene {
       if (this.shootPressedDuration == 0 || this.shootPressedDuration >= 1000) {
         if (this.isGameOver && !this.restartTriggered) {
           if (this.restartDelay < 2000) {
+            let scene = this;
             window.setTimeout(function() {
-              restartGame(this);
+              restartGame(scene);
             }, 2000 - this.restartDelay);
           } else {
             restartGame(this);
@@ -673,7 +673,6 @@ function removeEnemyShooter(scene, enemy) {
 
 function initEnemy(scene, enemy, type, frame, x, y, velocityX, velocityY, mass=10) {
   scene.activeEnemies[enemy.body.id] = enemy;
-  // console.log(scene.activeEnemies);
   enemy.setFrame(frame);
   enemy.setPosition(x, y);
   enemy.setVisible(true);
@@ -982,15 +981,15 @@ function gameOver(scene, player) {
     return;
   }
 
-  let counter = 3;
-  let intervalId = window.setInterval(function() {
-    scene.sounds.alarm.play();
-    if (counter > 0) {
-      counter--;
-    } else {
-      clearInterval(intervalId);
-    }
-  }, 400);
+  // let counter = 2;
+  // let intervalId = window.setInterval(function() {
+  //   scene.sounds.alarm.play();
+  //   if (counter > 0) {
+  //     counter--;
+  //   } else {
+  //     clearInterval(intervalId);
+  //   }
+  // }, 300);
 
   scene.isGameOver = true;
   scene.cameras.main.shake(1000, 0.004, true);
@@ -1033,7 +1032,7 @@ function start_game_engine() {
 
 
 document.addEventListener('DOMContentLoaded', function () {
-  // start_game_engine();
+  start_game_engine();
   // let sprite = document.getElementById('sprite-transform');
   // sprite.style.display = 'none';
 });
@@ -1049,7 +1048,7 @@ function finishWave(scene) {
     return;
   }
 
-  if (scene.currWave > 3) {
+  if (scene.currWave >= 3) {
     displayText(scene, 'GREAT SUCCESS! YOU WIN!');
     scene.sounds.win.play();
 
@@ -1199,15 +1198,15 @@ function spawnWaveThree(scene) {
   queueSpawnEnemy(2000, scene, EnemyType.BASIC, 0, betweenX1);
   queueSpawnEnemy(2000, scene, EnemyType.BASIC, 0, betweenX2);
   queueSpawnEnemy(0, scene, EnemyType.BASIC, 0, quarterX);
-
+  
   queueSpawnEnemy(2000, scene, EnemyType.BASIC, 0, quarterX);
   queueSpawnEnemy(500, scene, EnemyType.BASIC, 0, quarterX + (TILE_SIZE * 2));
   queueSpawnEnemy(1000, scene, EnemyType.SHOOTER, 1, quarterX + (TILE_SIZE * 2));
-
+  
   queueSpawnEnemy(2000, scene, EnemyType.BASIC, 0, middleX);
   queueSpawnEnemy(2000, scene, EnemyType.BASIC, 0, betweenX3);
   queueSpawnEnemy(500, scene, EnemyType.BASIC, 0, quarterX + (TILE_SIZE * 2));
-
+  
   queueSpawnEnemy(6000, scene, EnemyType.MULTI_SHOOTER, 5, betweenX4);
   queueSpawnEnemy(2000, scene, EnemyType.MULTI_SHOOTER, 5, betweenX5);
   queueSpawnEnemy(4000, scene, EnemyType.MULTI_SHOOTER, 4, threeQuartersX);
@@ -1217,16 +1216,11 @@ function spawnWaveThree(scene) {
   queueSpawnEnemy(1000, scene, EnemyType.SHOOTER, 1, quarterX + (TILE_SIZE * 2));
   queueSpawnEnemy(2000, scene, EnemyType.MULTI_SHOOTER, 4, quarterX);
   queueSpawnEnemy(1000, scene, EnemyType.SHOOTER, 2, middleX);
-  // queueSpawnEnemy(1000, scene, EnemyType.BASIC, 3, betweenX5);
   // 
-  // queueSpawnEnemy(6000, scene, EnemyType.SHOOTER, 1, enemy9X);
-  // queueSpawnEnemy(0, scene, EnemyType.SHOOTER, 1, enemy10X);
-  // queueSpawnEnemy(2000, scene, EnemyType.KNIGHT, -1, middleX);
-  // queueSpawnEnemy(2000, scene, EnemyType.SHOOTER, 1, enemy11X);
   queueSpawnEnemy(5000, scene, EnemyType.KNIGHT, -1, enemy12X);
   queueSpawnEnemy(3000, scene, EnemyType.KNIGHT, -1, threeQuartersX);
   queueSpawnEnemy(3000, scene, EnemyType.KNIGHT, -1, betweenX4);
   
-  queueSpawnEnemy(2000, scene, EnemyType.BUNNY, -1, middleX);
-  queueSpawnEnemy(2000, scene, EnemyType.BUNNY, -1, middleX);
+  queueSpawnEnemy(2000, scene, EnemyType.BUNNY, -1, oneThirdX);
+  queueSpawnEnemy(2000, scene, EnemyType.BUNNY, -1, twoThirdsX);
 }

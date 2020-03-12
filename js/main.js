@@ -79,7 +79,6 @@ function game_intro_phase_2() {
 }
 
 function play_transform() {
-  document.getElementById("game-tutorial").style.display = "block";
   let sprite = document.getElementById("sprite-transform");
   let position = 0;
 
