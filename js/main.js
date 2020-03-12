@@ -111,7 +111,7 @@ function play_transform() {
     } else {
       clearInterval(intervalId);
       setTimeout(function() {
-        start_game_engine();
+        startGameEngine();
       }, 9000);
     }
   }, 130);
@@ -226,6 +226,10 @@ document.addEventListener("DOMContentLoaded", function () {
     //   }
     // }
   });
+
+  if (window.location.pathname.indexOf('game') !== -1) {
+    particles.pJS.particles.move.speed = -10;
+  }
 
   // document.getElementById("start-game").onmouseenter = function() {
   //   document.getElementById("icon-audio").play();

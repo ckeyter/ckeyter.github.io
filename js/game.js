@@ -74,10 +74,10 @@ class SpriteGroup {
 
     this.activeSprites = [];
     this.deadSprites = [];
-    
+
     this.voidX = voidX;
     this.voidY = voidY;
-    
+
     if (isDeadFunction != null) {
       this.isDead = isDeadFunction;
     } else {
@@ -268,7 +268,7 @@ class GameScene extends Phaser.Scene {
     this.load.audio('turbulence-2', '/audio/turbulence-2.wav');
     this.load.audio('turbulence-3', '/audio/turbulence-3.wav');
   }
-  
+
   create() {
     // 1. Create physics categories for the different kinds of objects in the game
     let defaultCategory = 1;
@@ -350,10 +350,10 @@ class GameScene extends Phaser.Scene {
     this.player.setAngle(270);
     this.player.setFrictionAir(0.05); // Default is 0.01
     this.player.setMass(50); // Default is 3.025
-    
+
     // this.player.setTint(0x000000);
     this.player.moveSpeed = 0.08;
-    
+
     // 4. Create animations
     this.anims.create({
       key: 'explode',
@@ -423,7 +423,7 @@ class GameScene extends Phaser.Scene {
     // 6. Start audio
     this.sounds = {};
 
-    this.sounds.shootGroup = new SoundGroup(this, 10, 'shoot');
+    this.sounds.shootGroup = new SoundGroup(this, 15, 'shoot', 0.8);
 
     this.sounds.start = this.sound.add('start');
     this.sounds.start.play();
@@ -434,9 +434,9 @@ class GameScene extends Phaser.Scene {
     this.sounds.specialHit = this.sound.add('special-hit');
     this.sounds.win = this.sound.add('win');
 
-    this.sounds.turbulenceGroup = new SoundGroup(this, 10, 'turbulence', 2);
-    this.sounds.turbulence2Group = new SoundGroup(this, 10, 'turbulence-2', 2);
-    this.sounds.turbulence3Group = new SoundGroup(this, 10, 'turbulence-3', 2);
+    this.sounds.turbulenceGroup = new SoundGroup(this, 4, 'turbulence', 2);
+    this.sounds.turbulence2Group = new SoundGroup(this, 4, 'turbulence-2', 2);
+    this.sounds.turbulence3Group = new SoundGroup(this, 4, 'turbulence-3', 2);
 
     let music1 = this.sound.add('music-1');
     music1.setVolume(0.3);
@@ -459,8 +459,13 @@ class GameScene extends Phaser.Scene {
     if (sprite) {
       sprite.style.display = 'none';
     }
-    
-    initGame(this);
+
+    if (window.location.pathname.indexOf('game') !== -1) {
+      initGame(this, true);
+    }
+    else {
+      initGame(this);
+    }
   }
 
   isActionPressed(action) {
@@ -479,14 +484,14 @@ class GameScene extends Phaser.Scene {
   }
 
   update(time, delta) {
-    if (!this.isGameOver) {
+    if (!this.isGameOver && !this.hasWon) {
       if (this.isActionPressed('left')) {
         this.player.thrustLeft(this.player.moveSpeed);
       }
       else if (this.isActionPressed('right')) {
         this.player.thrustRight(this.player.moveSpeed);
       }
-      
+
       if (this.isActionPressed('up')) {
         this.player.thrust(this.player.moveSpeed);
       }
@@ -495,23 +500,28 @@ class GameScene extends Phaser.Scene {
       }
     }
     else {
-      if (this.isActionPressed('quit')) {
-        window.location = '/';
-      }
       this.restartDelay += delta;
     }
-    
-    if (this.isActionPressed('shoot')) {
+
+    if (this.isActionPressed('quit')) {
+      window.location = '/';
+    }
+
+    if (this.isActionPressed('shoot') && !this.hasWon) {
       if (this.shootPressedDuration == 0 || this.shootPressedDuration >= 1000) {
-        if (this.isGameOver && !this.restartTriggered) {
-          if (this.restartDelay < 2000) {
-            let scene = this;
-            window.setTimeout(function() {
-              restartGame(scene);
-            }, 2000 - this.restartDelay);
-          } else {
-            restartGame(this);
+        if (this.isGameOver) {
+        // if (this.isGameOver && !this.restartTriggered) {
+          if (this.restartDelay > 1000) {
+            window.location = '/game';
           }
+          // if (this.restartDelay < 2000) {
+          //   let scene = this;
+          //   window.setTimeout(function() {
+          //     restartGame(scene);
+          //   }, 2000 - this.restartDelay);
+          // } else {
+          //   restartGame(this);
+          // }
         }
         else {
           this.sounds.shootGroup.play();
@@ -533,27 +543,37 @@ class GameScene extends Phaser.Scene {
     this.enemyBulletGroup.update();
     // console.log('DEAD: ' + this.explosionGroup.deadSprites.length + ' | ACTIVE: ' + this.explosionGroup.activeSprites.length);
 
-    if (this.lastAsteroidSpawn == 0 || this.lastAsteroidSpawn >= ASTEROID_SPAWN_TIME) {
-      spawnAsteroid(this.asteroidsGroup.getFirstDead());
-      this.lastAsteroidSpawn = 0;
+    if (!this.hasWon) {
+      if (this.lastAsteroidSpawn == 0 || this.lastAsteroidSpawn >= ASTEROID_SPAWN_TIME) {
+        spawnAsteroid(this.asteroidsGroup.getFirstDead());
+        this.lastAsteroidSpawn = 0;
+      }
+      this.lastAsteroidSpawn += delta;
     }
-    this.lastAsteroidSpawn += delta;
 
     if (this.enemyShooters.length > 0) {
       if (this.lastEnemyShootTime == 0 || this.lastEnemyShootTime >= ENEMY_SHOOT_TIME) {
         for (let index in this.enemyShooters) {
           let shooter = this.enemyShooters[index];
           let bullet = this.enemyBulletGroup.getFirstDead();
-          bullet.setRotation(0);
-          fireBullet(bullet, shooter.x, shooter.y, 0, 5);
 
-          if (shooter.type === EnemyType.MULTI_SHOOTER) {
-            let bullet2 = this.enemyBulletGroup.getFirstDead();
-            bullet2.setRotation(-90);
-            fireBullet(bullet2, shooter.x, shooter.y, 5, 0);
-            let bullet3 = this.enemyBulletGroup.getFirstDead();
-            bullet3.setRotation(90);
-            fireBullet(bullet3, shooter.x, shooter.y, -5, 0);
+          if (bullet) {
+            bullet.setRotation(0);
+            fireBullet(bullet, shooter.x, shooter.y, 0, 5);
+
+            if (shooter.type === EnemyType.MULTI_SHOOTER) {
+              let bullet2 = this.enemyBulletGroup.getFirstDead();
+              if (bullet2) {
+                bullet2.setRotation(-90);
+                fireBullet(bullet2, shooter.x, shooter.y, 5, 0);
+              }
+
+              let bullet3 = this.enemyBulletGroup.getFirstDead();
+              if (bullet3) {
+                bullet3.setRotation(90);
+                fireBullet(bullet3, shooter.x, shooter.y, -5, 0);
+              }
+            }
           }
         }
         this.lastEnemyShootTime = 0;
@@ -581,6 +601,7 @@ function initGame(scene, flyIn=false) {
   scene.enemyShooters = [];
   scene.spawnQueue = [];
   scene.isGameOver = false;
+  scene.hasWon = false;
   scene.restartDelay = 0;
   scene.restartTriggered = false;
 
@@ -603,7 +624,7 @@ function initGame(scene, flyIn=false) {
 function restartGame(scene) {
   this.restartTriggered = true;
 
-  if (scene.activeEnemies.length > 0) {
+  if (Object.keys(scene.activeEnemies).length > 0) {
     for (let key in scene.activeEnemies) {
       let enemy = scene.activeEnemies[key];
       enemy.group.kill(enemy, true);
@@ -793,7 +814,7 @@ function explode(explosion, x, y) {
   explosion.setPosition(x, y);
   explosion.setVisible(true);
   explosion.play('explode');
-  
+
   setTimeout(function() {
     explosion.group.kill(explosion, false);
   }, 200);
@@ -878,7 +899,7 @@ function onCollide(scene, collision) {
     scene.sounds.turbulence2Group.play();
 
     // let head = bodyB.head;
-    // 
+    //
     // for (let i = 0; i < head.destroyPriorities.length; i++) {
     //   let enemy = head.destroyPriorities[i];
     //   enemy.setVelocity(0, 2);
@@ -890,7 +911,7 @@ function onCollide(scene, collision) {
     scene.sounds.turbulence2Group.play();
 
     // let head = bodyB.head;
-    // 
+    //
     // for (let i = 0; i < head.destroyPriorities.length; i++) {
     //   let enemy = head.destroyPriorities[i];
     //   enemy.setVelocity(0, 2);
@@ -1012,7 +1033,7 @@ function gameOver(scene, player) {
   displayText(scene, 'GAME OVER\nPress "space" to retry\nPress "q" to quit');
 }
 
-function start_game_engine() {
+function startGameEngine() {
   let config = {
     type: Phaser.CANVAS,
     antialias: false,
@@ -1036,38 +1057,55 @@ function start_game_engine() {
   const game = new Phaser.Game(config);
 }
 
-
 document.addEventListener('DOMContentLoaded', function () {
-  // start_game_engine();
-  // let sprite = document.getElementById('sprite-transform');
-  // sprite.style.display = 'none';
+  if (window.location.pathname.indexOf('game') !== -1) {
+    startGameEngine();
+  }
 });
 
-function playCredits() {
-  // CODE, ART & MUSIC BY  CHRISTIAAN KEYTER
-  // I LOVE MAKING GAMES
-  // SO HIRE ME!
+function playCredits(scene) {
+  scene.player.setCollidesWith(0);
+
+  window.setTimeout(function() {
+    displayText(scene, 'CODE, MUSIC & ART BY\nCHRISTIAAN KEYTER');
+  }, 4000);
+
+  window.setTimeout(function() {
+    scene.alertText.setVisible(false);
+  }, 8000);
+
+  window.setTimeout(function() {
+    displayText(scene, 'THANKS FOR PLAYING!');
+  }, 9000);
+
+  window.setTimeout(function() {
+    scene.alertText.setVisible(false);
+  }, 13000);
+
+  window.setTimeout(function() {
+    scene.player.thrust(10);
+  }, 15000);
+
+  window.setTimeout(function() {
+    window.location = '/';
+  }, 17000);
 }
 
 function finishWave(scene) {
-  if (scene.isGameOver) {
+  if (scene.isGameOver || scene.hasWon) {
     return;
   }
 
   if (scene.currWave >= 3) {
     displayText(scene, 'GREAT SUCCESS! YOU WIN!');
     scene.sounds.win.play();
-
-    window.setTimeout(function() {
-      scene.alertText.setVisible(false);
-    }, 4000);
-
-    playCredits();
+    scene.hasWon = true;
+    playCredits(scene);
     return;
   }
 
   displayText(scene, 'WAVE COMPLETE!');
-  
+
   window.setTimeout(function() {
     scene.alertText.setVisible(false);
     scene.currWave += 1;
@@ -1078,7 +1116,7 @@ function finishWave(scene) {
 function startWave(scene, waveNumber) {
   window.setTimeout(function() {
     displayText(scene, 'WAVE ' + waveNumber);
-    
+
     window.setTimeout(function() {
       scene.alertText.setVisible(false);
       if (waveNumber == 1) {
@@ -1118,18 +1156,18 @@ function spawnWaveOne(scene) {
   // Launch the convoy
   queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, oneThirdX);
   queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, twoThirdsX);
-  
+
   queueSpawnEnemy(6000, scene, EnemyType.BASIC, 0, middleX);
   queueSpawnEnemy(2000, scene, EnemyType.BASIC, 0, quarterX);
   queueSpawnEnemy(0, scene, EnemyType.BASIC, 0, threeQuartersX);
-  
+
   queueSpawnEnemy(5000, scene, EnemyType.SHOOTER, 1, middleX);
   queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, quarterX);
   queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, threeQuartersX);
-  
+
   queueSpawnEnemy(6000, scene, EnemyType.SHOOTER, 1, oneThirdX, 0.5);
   queueSpawnEnemy(0, scene, EnemyType.SHOOTER, 1, twoThirdsX, -0.5);
-  
+
   queueSpawnEnemy(6000, scene, EnemyType.BASIC, 0, betweenX1);
   queueSpawnEnemy(2000, scene, EnemyType.SHOOTER, 2, betweenX2);
   queueSpawnEnemy(2000, scene, EnemyType.BASIC, 0, betweenX3);
@@ -1193,40 +1231,42 @@ function spawnWaveThree(scene) {
   let enemy11X = middleX + enemy9X;
   let enemy12X = middleX + (enemy9X * 2);
 
-  let betweenX1 = Phaser.Math.Between(quarterX, window.innerWidth - quarterX);
-  let betweenX2 = Phaser.Math.Between(quarterX, window.innerWidth - quarterX);
-  let betweenX3 = Phaser.Math.Between(quarterX, window.innerWidth - quarterX);
-  let betweenX4 = Phaser.Math.Between(quarterX, window.innerWidth - quarterX);
-  let betweenX5 = Phaser.Math.Between(quarterX, window.innerWidth - quarterX);
+  let betweenX1 = Phaser.Math.Between(TILE_SIZE, window.innerWidth - TILE_SIZE);
+  let betweenX2 = Phaser.Math.Between(TILE_SIZE, window.innerWidth - TILE_SIZE);
+  let betweenX3 = Phaser.Math.Between(TILE_SIZE, window.innerWidth - TILE_SIZE);
+  let betweenX4 = Phaser.Math.Between(TILE_SIZE, window.innerWidth - TILE_SIZE);
+  let betweenX5 = Phaser.Math.Between(TILE_SIZE, window.innerWidth - TILE_SIZE);
+  let betweenX6 = Phaser.Math.Between(TILE_SIZE, window.innerWidth - TILE_SIZE);
+  let betweenX7 = Phaser.Math.Between(TILE_SIZE, window.innerWidth - TILE_SIZE);
 
   // Launch the convoy
   queueSpawnEnemy(2000, scene, EnemyType.BASIC, 0, threeQuartersX);
-  queueSpawnEnemy(2000, scene, EnemyType.BASIC, 0, betweenX1);
-  queueSpawnEnemy(2000, scene, EnemyType.BASIC, 0, betweenX2);
+  queueSpawnEnemy(500, scene, EnemyType.BASIC, 0, betweenX1);
+  queueSpawnEnemy(500, scene, EnemyType.BASIC, 0, betweenX2);
   queueSpawnEnemy(0, scene, EnemyType.BASIC, 0, quarterX);
-  
-  queueSpawnEnemy(2000, scene, EnemyType.BASIC, 0, quarterX);
+
+  queueSpawnEnemy(500, scene, EnemyType.BASIC, 0, betweenX6);
   queueSpawnEnemy(500, scene, EnemyType.BASIC, 0, quarterX + (TILE_SIZE * 2));
-  queueSpawnEnemy(1000, scene, EnemyType.SHOOTER, 1, quarterX + (TILE_SIZE * 2));
-  
-  queueSpawnEnemy(2000, scene, EnemyType.BASIC, 0, middleX);
-  queueSpawnEnemy(2000, scene, EnemyType.BASIC, 0, betweenX3);
+  queueSpawnEnemy(500, scene, EnemyType.SHOOTER, 1, betweenX7);
+
+  queueSpawnEnemy(0, scene, EnemyType.BASIC, 0, middleX);
+  queueSpawnEnemy(0, scene, EnemyType.BASIC, 0, betweenX3);
   queueSpawnEnemy(500, scene, EnemyType.BASIC, 0, quarterX + (TILE_SIZE * 2));
-  
-  queueSpawnEnemy(6000, scene, EnemyType.MULTI_SHOOTER, 5, betweenX4);
+
+  queueSpawnEnemy(5000, scene, EnemyType.MULTI_SHOOTER, 5, betweenX4);
   queueSpawnEnemy(2000, scene, EnemyType.MULTI_SHOOTER, 5, betweenX5);
   queueSpawnEnemy(4000, scene, EnemyType.MULTI_SHOOTER, 4, threeQuartersX);
-  queueSpawnEnemy(4000, scene, EnemyType.BASIC, 2, quarterX);
-  // 
+  queueSpawnEnemy(2000, scene, EnemyType.SHOOTER, 2, quarterX);
+
   queueSpawnEnemy(6000, scene, EnemyType.SHOOTER, 1, threeQuartersX);
   queueSpawnEnemy(1000, scene, EnemyType.SHOOTER, 1, quarterX + (TILE_SIZE * 2));
   queueSpawnEnemy(2000, scene, EnemyType.MULTI_SHOOTER, 4, quarterX);
   queueSpawnEnemy(1000, scene, EnemyType.SHOOTER, 2, middleX);
-  // 
+
   queueSpawnEnemy(5000, scene, EnemyType.KNIGHT, -1, enemy12X);
-  queueSpawnEnemy(3000, scene, EnemyType.KNIGHT, -1, threeQuartersX);
+  queueSpawnEnemy(4000, scene, EnemyType.KNIGHT, -1, threeQuartersX);
   queueSpawnEnemy(3000, scene, EnemyType.KNIGHT, -1, betweenX4);
-  
-  queueSpawnEnemy(2000, scene, EnemyType.BUNNY, -1, oneThirdX);
-  queueSpawnEnemy(2000, scene, EnemyType.BUNNY, -1, twoThirdsX);
+
+  // queueSpawnEnemy(2000, scene, EnemyType.BUNNY, -1, oneThirdX);
+  queueSpawnEnemy(2000, scene, EnemyType.BUNNY, -1, middleX);
 }
