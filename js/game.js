@@ -175,7 +175,7 @@ class SpriteGroup {
       if (sprite.type === EnemyType.SHOOTER) {
         removeEnemyShooter(this.scene, sprite);
       }
-      console.log(this.scene.activeEnemies);
+      console.log("Active Enemies: " + this.scene.activeEnemies.length);
       if (this.scene.activeEnemies.length === 0) {
         finishWave(this.scene);
       }
@@ -444,9 +444,9 @@ class GameScene extends Phaser.Scene {
     music1.setLoop(true);
     this.sounds.music1 = music1;
 
-    // window.setTimeout(function() {
-    //   music1.play();
-    // }, 1500);
+    window.setTimeout(function() {
+      music1.play();
+    }, 1500);
 
     // 7. Start wave one
     this.alertText = this.add.text(0, 0, 'BISCUITS', {
@@ -900,7 +900,7 @@ function handleCollidePlayer(scene, object, player) {
   scene.sounds.turbulence2Group.play();
 
   if (player.mode === PlayerMode.SPECIAL) {
-    console.log("SPECIAL collides with " + object.body.label);
+    // console.log("SPECIAL collides with " + object.body.label);
     transformPlayer(scene, player);
     scene.sounds.specialHit.play();
     explode(scene.explosionGroup.getFirstDead(), object.x, object.y);
