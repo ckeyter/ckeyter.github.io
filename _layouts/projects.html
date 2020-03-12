@@ -5,30 +5,10 @@ layout: default
 <div id="particles-js">
 </div>
 
-<div class="side-navbar">
-  <div class="navicon logo">
-    <span class="tool-tip">MAIN MENU</span>
-    <a href="/">
-      <img class="pixel-image" src="../images/logo.png" height="45px" width="45px">
-    </a>
-  </div>
-  <div class="navicon logo">
-    <span class="tool-tip">ABOUT</span>
-    <a href="/">
-      <img class="pixel-image" src="../images/icon-1.png" height="45px" width="45px">
-    </a>
-  </div>
-  <div class="navicon logo">
-    <span class="tool-tip">PROJECTS</span>
-    <a href="/">
-      <img class="pixel-image" src="../images/icon-2.png" height="45px" width="45px">
-    </a>
-  </div>
-</div>
-
 <div class="container">
   <div class="row header-row">
-    <div class="col-lg-12">
+    <div class="col-lg-1"></div>
+    <div class="col-lg-11">
       <div class="page-header">
         <h1 class="display-1">Games</h1>
       </div>
@@ -37,7 +17,29 @@ layout: default
 
   {% for post in site.categories["Games"] %}
   <div class="row">
-    <div class="col-lg-12">
+    <div class="col-lg-1">
+      <div class="position-fixed" style="z-index:1020">
+        <div class="navicon logo">
+          <a href="/">
+            <img class="pixel-image icon-link" src="../images/logo.png" height="44px" width="44px">
+          </a>
+          <span class="tool-tip">MAIN MENU</span>
+        </div>
+        <div class="navicon logo">
+          <a href="/about">
+            <img class="pixel-image icon-link" src="../images/icon-about.png" height="44px" width="44px">
+          </a>
+          <span class="tool-tip">ABOUT</span>
+        </div>
+        <div class="navicon logo">
+          <a href="/resume">
+            <img class="pixel-image icon-link" src="../images/icon-resume.png" height="44px" width="44px">
+          </a>
+          <span class="tool-tip">RESUME</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-11">
       <div class="card mb-3">
         <div class="card-header" style="background-color:#DC143C">
           <h1 class="job-header">{{ post.title }}</h1>
@@ -57,7 +59,8 @@ layout: default
   {% endfor %}
 
   <div class="row header-row">
-    <div class="col-lg-12">
+    <div class="col-lg-1"></div>
+    <div class="col-lg-11">
       <div class="page-header">
         <h1 class="display-1">Open Source</h1>
       </div>
@@ -66,7 +69,8 @@ layout: default
 
   {% for post in site.categories["Projects"] %}
   <div class="row">
-    <div class="col-lg-12">
+    <div class="col-lg-1"></div>
+    <div class="col-lg-11">
       <div class="card mb-3">
         <div class="card-header">
           <div class="flex" style="font-size:40px">

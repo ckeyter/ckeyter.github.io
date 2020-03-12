@@ -58,20 +58,26 @@ div#particles-js {
 .logo {
   // text-align: center;
 }
-.side-navbar {
-  position: fixed;
-  left: 100px;
-  top: 30px;
+.navicon {
+  // width: 300px;
 }
 .navicon .tool-tip {
-  visibility: hidden;
-  text-align: center;
-  border-radius: 6px;
-  padding: 5px 20px;
+  display: none;
+  position: relative;
+  z-index: -1;
+  text-align: right;
   font-size: 40px;
+  width: 200px;
+  left: -280px;
+}
+.navicon:hover {
+  // cursor: pointer;
+}
+.navicon a:hover {
+  // cursor: pointer;
 }
 .navicon:hover .tool-tip {
-  visibility: visible;
+  display: inline-block;
 }
 .pixel-image {
   image-rendering: -webkit-crisp-edges;
@@ -170,11 +176,4 @@ canvas {
 }
 .resume-list {
   font-size: 32px;
-}
-#game-tutorial {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  color: $pink;
-  display: none;
 }
