@@ -102,6 +102,9 @@ class SpriteGroup {
     }
 
     sprite.group = this;
+    sprite.groupName = this.name;
+    sprite.explosive = false;
+
     sprite.setDisplaySize(this.displayWidth, this.displayHeight);
     sprite.setVisible(false);
     sprite.setFixedRotation();
@@ -117,7 +120,6 @@ class SpriteGroup {
     // sprite.body.setAllowDrag(false);
 
     sprite.body.isSleeping = true;
-    sprite.body.label = this.name;
 
     if (this.collisionCategory != null) {
       sprite.setCollisionCategory(this.collisionCategory);
@@ -157,6 +159,7 @@ class SpriteGroup {
     // Kills the sprite by moving it off-screen, disabling it, and stopping it's
     // current motion. The sprite can then be recycled. Lastly, if an explosion
     // sprite was passed along, set it off!
+    sprite.explosive = false;
     sprite.body.isSleeping = true;
     sprite.setVisible(false);
     sprite.setVelocity(0, 0);
@@ -167,6 +170,10 @@ class SpriteGroup {
 
     if (explosion) {
       explode(this.scene.explosionGroup.getFirstDead(), x, y);
+    }
+
+    if (this.hasOwnProperty('explodeIntervalId')) {
+      clearInterval(this.explodeIntervalId);
     }
 
     if (this.name === 'enemies') {
@@ -209,14 +216,14 @@ class SpriteGroup {
       if (i < 0 || i >= this.activeSprites.length) { break; }
       let sprite = this.activeSprites[i];
       if (this.isDead(sprite)) {
-        this.kill(sprite, false, i);
-        i++;
-
         if (this.name === 'enemies') {
           if (!sprite.hasOwnProperty('explosive') || !sprite.explosive) {
             gameOver(this.scene, this.scene.player);
           }
         }
+
+        this.kill(sprite, false, i);
+        i++;
       }
     }
   }
@@ -343,7 +350,7 @@ class GameScene extends Phaser.Scene {
     this.player.setDisplaySize(TILE_SIZE, TILE_SIZE);
     this.player.setCollisionCategory(playerCategory);
     this.player.setCollidesWith([defaultCategory, enemyCategory, asteroidsCategory, enemyBulletCategory]);
-    this.player.body.label = 'player';
+    this.player.groupName = 'player';
 
     this.player.setFixedRotation();
     this.player.setAngle(270);
@@ -512,6 +519,7 @@ class GameScene extends Phaser.Scene {
         // if (this.isGameOver && !this.restartTriggered) {
           if (this.restartDelay > 1000) {
             window.location = '/game';
+            // restartGame(this);
           }
           // if (this.restartDelay < 2000) {
           //   let scene = this;
@@ -639,13 +647,17 @@ function restartGame(scene) {
   }, 1000);
 }
 
-function transformPlayer(scene, player) {
+function transformPlayer(scene, player, targetMode) {
+  if (player.mode === targetMode) {
+    return;
+  }
+
   if (player.mode === PlayerMode.NORMAL) {
     scene.sounds.transform.play();
     player.play('transform-special');
     window.setTimeout(function() {
       player.mode = PlayerMode.SPECIAL;
-    }, 500);
+    }, 100);
   }
   else {
     player.play('transform-normal');
@@ -747,6 +759,7 @@ function spawnEnemy(scene, type, frame, x, velocityX=0, velocityY=2) {
 
     enemy2.destroyPriorities = [enemy, enemy2];
     enemy.head = enemy2;
+    scene.enemyShooters.push(enemy);
     scene.enemyShooters.push(enemy2);
 
     // enemy.setMass(1);
@@ -790,7 +803,7 @@ function updateKills(scene) {
   scene.kills = scene.kills + 1;
 
   if (scene.kills >= 3) {
-    transformPlayer(scene, scene.player);
+    transformPlayer(scene, scene.player, PlayerMode.SPECIAL);
     scene.kills = 0;
   }
 }
@@ -823,8 +836,8 @@ function explode(explosion, x, y) {
 function onCollide(scene, collision) {
   let bodyA = collision.bodyA.gameObject;
   let bodyB = collision.bodyB.gameObject;
-  let nameA = collision.bodyA.label;
-  let nameB = collision.bodyB.label;
+  let nameA = bodyA.groupName;
+  let nameB = bodyB.groupName;
   // console.log("A: " + nameA + " | B: " + nameB);
 
   if (nameB === 'player') {
@@ -916,6 +929,8 @@ function onCollide(scene, collision) {
     //   let enemy = head.destroyPriorities[i];
     //   enemy.setVelocity(0, 2);
     // }
+  } else {
+    console.log('Unresolved collision between "' + nameA + '" and "' + nameB + '"');
   }
 }
 
@@ -926,12 +941,12 @@ function handleCollidePlayer(scene, object, player) {
   scene.sounds.turbulence2Group.play();
 
   if (player.mode === PlayerMode.SPECIAL) {
-    // console.log("SPECIAL collides with " + object.body.label);
-    transformPlayer(scene, player);
+    // console.log("SPECIAL collides with " + object.groupName);
+    transformPlayer(scene, player, PlayerMode.NORMAL);
     scene.sounds.specialHit.play();
     explode(scene.explosionGroup.getFirstDead(), object.x, object.y);
 
-    if (object.body.label === 'bullet-enemy') {
+    if (object.groupName === 'bullet-enemy') {
       object.setVelocity(player.body.velocity.x * 5, player.body.velocity.y * 5);
     }
 
@@ -939,9 +954,9 @@ function handleCollidePlayer(scene, object, player) {
     object.explosive = true;
     object.deathTimer = 0;
 
-    let intervalId = window.setInterval(function() {
+    object.explodeIntervalId = window.setInterval(function() {
       if (object.deathTimer === 1500) {
-        clearInterval(intervalId);
+        clearInterval(object.explodeIntervalId);
         object.group.kill(object, true);
         scene.sounds.turbulenceGroup.play();
         scene.sounds.turbulence2Group.play();
@@ -979,7 +994,7 @@ function handleCollidePlayer(scene, object, player) {
 }
 
 function handleCollideBullet(scene, bullet, victim) {
-  // console.log("Bullet hit victim: " + victim.body.label);
+  // console.log("Bullet hit victim: " + victim.groupName);
 
   if (victim.hasOwnProperty('head')) {
     victim = victim.head;
@@ -1088,7 +1103,7 @@ function playCredits(scene) {
 
   window.setTimeout(function() {
     window.location = '/';
-  }, 17000);
+  }, 19000);
 }
 
 function finishWave(scene) {
@@ -1107,6 +1122,15 @@ function finishWave(scene) {
   displayText(scene, 'WAVE COMPLETE!');
 
   window.setTimeout(function() {
+    if (scene.lives < MAX_LIVES) {
+      player.setFrame(11);
+      scene.lives = MAX_LIVES;
+
+      window.setTimeout(function() {
+        player.setFrame(scene.lives - 1);
+      }, 300);
+    }
+
     scene.alertText.setVisible(false);
     scene.currWave += 1;
     startWave(scene, scene.currWave);
@@ -1158,8 +1182,8 @@ function spawnWaveOne(scene) {
   queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, twoThirdsX);
   queueSpawnEnemy(2000, scene, EnemyType.BASIC, 0, middleX);
 
-  queueSpawnEnemy(1000, scene, EnemyType.BASIC, 0, quarterX);
-  queueSpawnEnemy(0, scene, EnemyType.BASIC, 0, quarterX + (TILE_SIZE * 2));
+  queueSpawnEnemy(3000, scene, EnemyType.BASIC, 0, quarterX);
+  queueSpawnEnemy(500, scene, EnemyType.BASIC, 0, quarterX - (TILE_SIZE * 2));
 
   queueSpawnEnemy(5000, scene, EnemyType.SHOOTER, 1, middleX);
   queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, quarterX);
@@ -1200,10 +1224,11 @@ function spawnWaveTwo(scene) {
   queueSpawnEnemy(3000, scene, EnemyType.SHOOTER, 2, quarterX);
   queueSpawnEnemy(0, scene, EnemyType.SHOOTER, 2, threeQuartersX - (TILE_SIZE * 2));
 
-  queueSpawnEnemy(6000, scene, EnemyType.BASIC, 0, middleX - (TILE_SIZE * 2));
-  queueSpawnEnemy(2000, scene, EnemyType.BASIC, 0, quarterX);
-  queueSpawnEnemy(4000, scene, EnemyType.MULTI_SHOOTER, 4, middleX);
-  queueSpawnEnemy(4000, scene, EnemyType.BASIC, 0, quarterX);
+  queueSpawnEnemy(5000, scene, EnemyType.BASIC, 0, middleX);
+  queueSpawnEnemy(1000, scene, EnemyType.BASIC, 0, quarterX);
+  queueSpawnEnemy(500, scene, EnemyType.MULTI_SHOOTER, 4, threeQuartersX, -0.5);
+  queueSpawnEnemy(0, scene, EnemyType.MULTI_SHOOTER, 4, quarterX, 0.5);
+  queueSpawnEnemy(4000, scene, EnemyType.SHOOTER, 2, threeQuartersX);
 
   queueSpawnEnemy(3000, scene, EnemyType.MULTI_SHOOTER, 4, betweenX1);
   queueSpawnEnemy(1000, scene, EnemyType.BASIC, 3, betweenX2);
@@ -1231,35 +1256,36 @@ function spawnWaveThree(scene) {
   let enemy11X = middleX + enemy9X;
   let enemy12X = middleX + (enemy9X * 2);
 
-  let betweenX1 = Phaser.Math.Between(TILE_SIZE, window.innerWidth - TILE_SIZE);
-  let betweenX2 = Phaser.Math.Between(TILE_SIZE, window.innerWidth - TILE_SIZE);
-  let betweenX3 = Phaser.Math.Between(TILE_SIZE, window.innerWidth - TILE_SIZE);
-  let betweenX4 = Phaser.Math.Between(TILE_SIZE, window.innerWidth - TILE_SIZE);
-  let betweenX5 = Phaser.Math.Between(TILE_SIZE, window.innerWidth - TILE_SIZE);
-  let betweenX6 = Phaser.Math.Between(TILE_SIZE, window.innerWidth - TILE_SIZE);
-  let betweenX7 = Phaser.Math.Between(TILE_SIZE, window.innerWidth - TILE_SIZE);
+  const DOUBLE_TILE_SIZE = TILE_SIZE * 2;
+  let betweenX1 = Phaser.Math.Between(DOUBLE_TILE_SIZE, window.innerWidth - DOUBLE_TILE_SIZE);
+  let betweenX2 = Phaser.Math.Between(DOUBLE_TILE_SIZE, window.innerWidth - DOUBLE_TILE_SIZE);
+  let betweenX3 = Phaser.Math.Between(DOUBLE_TILE_SIZE, window.innerWidth - DOUBLE_TILE_SIZE);
+  let betweenX4 = Phaser.Math.Between(DOUBLE_TILE_SIZE, window.innerWidth - DOUBLE_TILE_SIZE);
+  let betweenX5 = Phaser.Math.Between(DOUBLE_TILE_SIZE, window.innerWidth - DOUBLE_TILE_SIZE);
+  let betweenX6 = Phaser.Math.Between(DOUBLE_TILE_SIZE, window.innerWidth - DOUBLE_TILE_SIZE);
+  let betweenX7 = Phaser.Math.Between(DOUBLE_TILE_SIZE, window.innerWidth - DOUBLE_TILE_SIZE);
 
   // Launch the convoy
   queueSpawnEnemy(2000, scene, EnemyType.BASIC, 0, threeQuartersX);
   queueSpawnEnemy(500, scene, EnemyType.BASIC, 0, betweenX1);
   queueSpawnEnemy(500, scene, EnemyType.BASIC, 0, betweenX2);
-  queueSpawnEnemy(0, scene, EnemyType.BASIC, 0, quarterX);
+  queueSpawnEnemy(500, scene, EnemyType.BASIC, 0, quarterX);
 
-  queueSpawnEnemy(500, scene, EnemyType.BASIC, 0, betweenX6);
-  queueSpawnEnemy(500, scene, EnemyType.BASIC, 0, quarterX + (TILE_SIZE * 2));
+  queueSpawnEnemy(1000, scene, EnemyType.BASIC, 0, betweenX6);
+  queueSpawnEnemy(500, scene, EnemyType.BASIC, 0, quarterX + DOUBLE_TILE_SIZE);
   queueSpawnEnemy(500, scene, EnemyType.SHOOTER, 1, betweenX7);
 
-  queueSpawnEnemy(0, scene, EnemyType.BASIC, 0, middleX);
+  queueSpawnEnemy(500, scene, EnemyType.BASIC, 0, middleX);
   queueSpawnEnemy(0, scene, EnemyType.BASIC, 0, betweenX3);
-  queueSpawnEnemy(500, scene, EnemyType.BASIC, 0, quarterX + (TILE_SIZE * 2));
+  queueSpawnEnemy(500, scene, EnemyType.BASIC, 0, quarterX + DOUBLE_TILE_SIZE);
 
   queueSpawnEnemy(5000, scene, EnemyType.MULTI_SHOOTER, 5, betweenX4);
-  queueSpawnEnemy(2000, scene, EnemyType.MULTI_SHOOTER, 5, betweenX5);
-  queueSpawnEnemy(4000, scene, EnemyType.MULTI_SHOOTER, 4, threeQuartersX);
+  queueSpawnEnemy(1000, scene, EnemyType.MULTI_SHOOTER, 5, betweenX5);
+  queueSpawnEnemy(1000, scene, EnemyType.MULTI_SHOOTER, 4, threeQuartersX);
   queueSpawnEnemy(2000, scene, EnemyType.SHOOTER, 2, quarterX);
 
-  queueSpawnEnemy(6000, scene, EnemyType.SHOOTER, 1, threeQuartersX);
-  queueSpawnEnemy(1000, scene, EnemyType.SHOOTER, 1, quarterX + (TILE_SIZE * 2));
+  queueSpawnEnemy(2000, scene, EnemyType.SHOOTER, 1, threeQuartersX);
+  queueSpawnEnemy(1000, scene, EnemyType.SHOOTER, 1, quarterX + DOUBLE_TILE_SIZE);
   queueSpawnEnemy(2000, scene, EnemyType.MULTI_SHOOTER, 4, quarterX);
   queueSpawnEnemy(1000, scene, EnemyType.SHOOTER, 2, middleX);
 

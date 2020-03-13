@@ -121,7 +121,7 @@ function gameIntroPhase3() {
       // 2. Start the game engine after the tutorial text has been shown
       setTimeout(function() {
         startGameEngine();
-      }, 9000);
+      }, 11000);
     }
   }, 130);
 }
