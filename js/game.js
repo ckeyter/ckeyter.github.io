@@ -953,6 +953,11 @@ function handleCollidePlayer(scene, object, player) {
     object.deathTimer = 0;
 
     object.explodeIntervalId = window.setInterval(function() {
+      if (!object.explosive) {
+        clearInterval(object.explodeIntervalId);
+        return;
+      }
+
       if (object.deathTimer === 1500) {
         clearInterval(object.explodeIntervalId);
         object.group.kill(object, true);
@@ -1137,7 +1142,7 @@ function finishWave(scene) {
         else {
           scene.player.setFrame(scene.lives - 1);
         }
-      }, 1000);
+      }, 400);
     }
 
     scene.alertText.setVisible(false);
