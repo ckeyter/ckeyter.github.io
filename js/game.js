@@ -45,7 +45,7 @@ class SoundGroup {
       }
     }
 
-    console.log('WARNING: SoundGroup "' + this.name + '" has run out of idle sounds.');
+    // console.log('WARNING: SoundGroup "' + this.name + '" has run out of idle sounds.');
     return false;
   }
 }
@@ -235,7 +235,7 @@ class GameScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.spritesheet('player', '/images/sprites/player-special-2.png', {
+    this.load.spritesheet('player', '/images/sprites/player.png', {
       frameWidth: 11,
       frameHeight: 11,
       endFrame: 15
@@ -655,9 +655,7 @@ function transformPlayer(scene, player, targetMode) {
   if (player.mode === PlayerMode.NORMAL) {
     scene.sounds.transform.play();
     player.play('transform-special');
-    window.setTimeout(function() {
-      player.mode = PlayerMode.SPECIAL;
-    }, 100);
+    player.mode = PlayerMode.SPECIAL;
   }
   else {
     player.play('transform-normal');
@@ -930,7 +928,7 @@ function onCollide(scene, collision) {
     //   enemy.setVelocity(0, 2);
     // }
   } else {
-    console.log('Unresolved collision between "' + nameA + '" and "' + nameB + '"');
+    // console.log('Unresolved collision between "' + nameA + '" and "' + nameB + '"');
   }
 }
 
@@ -1123,12 +1121,23 @@ function finishWave(scene) {
 
   window.setTimeout(function() {
     if (scene.lives < MAX_LIVES) {
-      player.setFrame(11);
+      if (scene.player.mode === PlayerMode.SPECIAL) {
+        scene.player.setFrame(13);
+      }
+      else {
+        scene.player.setFrame(3);
+      }
+
       scene.lives = MAX_LIVES;
 
       window.setTimeout(function() {
-        player.setFrame(scene.lives - 1);
-      }, 300);
+        if (scene.player.mode === PlayerMode.SPECIAL) {
+          scene.player.setFrame(12);
+        }
+        else {
+          scene.player.setFrame(scene.lives - 1);
+        }
+      }, 1000);
     }
 
     scene.alertText.setVisible(false);
@@ -1185,7 +1194,7 @@ function spawnWaveOne(scene) {
   queueSpawnEnemy(3000, scene, EnemyType.BASIC, 0, quarterX);
   queueSpawnEnemy(500, scene, EnemyType.BASIC, 0, quarterX - (TILE_SIZE * 2));
 
-  queueSpawnEnemy(5000, scene, EnemyType.SHOOTER, 1, middleX);
+  queueSpawnEnemy(3000, scene, EnemyType.SHOOTER, 1, middleX);
   queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, quarterX);
   queueSpawnEnemy(0, scene, EnemyType.BASIC, 3, threeQuartersX);
 
