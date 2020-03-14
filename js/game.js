@@ -163,6 +163,7 @@ class SpriteGroup {
     sprite.body.isSleeping = true;
     sprite.setVisible(false);
     sprite.setVelocity(0, 0);
+    sprite.setMass(this.mass);
 
     let x = sprite.x;
     let y = sprite.y;
@@ -947,6 +948,9 @@ function handleCollidePlayer(scene, object, player) {
     if (object.groupName === 'bullet-enemy') {
       object.setVelocity(player.body.velocity.x * 5, player.body.velocity.y * 5);
     }
+    else if (object.groupName === 'asteroids') {
+      object.setMass(10);
+    }
 
     object.setFrame(object.hurtFrame);
     object.explosive = true;
@@ -1271,13 +1275,13 @@ function spawnWaveThree(scene) {
   let enemy12X = middleX + (enemy9X * 2);
 
   const DOUBLE_TILE_SIZE = TILE_SIZE * 2;
-  let betweenX1 = Phaser.Math.Between(DOUBLE_TILE_SIZE, window.innerWidth - DOUBLE_TILE_SIZE);
-  let betweenX2 = Phaser.Math.Between(DOUBLE_TILE_SIZE, window.innerWidth - DOUBLE_TILE_SIZE);
-  let betweenX3 = Phaser.Math.Between(DOUBLE_TILE_SIZE, window.innerWidth - DOUBLE_TILE_SIZE);
-  let betweenX4 = Phaser.Math.Between(DOUBLE_TILE_SIZE, window.innerWidth - DOUBLE_TILE_SIZE);
-  let betweenX5 = Phaser.Math.Between(DOUBLE_TILE_SIZE, window.innerWidth - DOUBLE_TILE_SIZE);
-  let betweenX6 = Phaser.Math.Between(DOUBLE_TILE_SIZE, window.innerWidth - DOUBLE_TILE_SIZE);
-  let betweenX7 = Phaser.Math.Between(DOUBLE_TILE_SIZE, window.innerWidth - DOUBLE_TILE_SIZE);
+  let betweenX1 = Phaser.Math.Between(quarterX, threeQuartersX);
+  let betweenX2 = Phaser.Math.Between(quarterX - TILE_SIZE, threeQuartersX);
+  let betweenX3 = Phaser.Math.Between(quarterX, threeQuartersX);
+  let betweenX4 = Phaser.Math.Between(quarterX, threeQuartersX);
+  let betweenX5 = Phaser.Math.Between(quarterX - TILE_SIZE, threeQuartersX);
+  let betweenX6 = Phaser.Math.Between(quarterX, threeQuartersX);
+  let betweenX7 = Phaser.Math.Between(quarterX + TILE_SIZE, threeQuartersX);
 
   // Launch the convoy
   queueSpawnEnemy(2000, scene, EnemyType.BASIC, 0, threeQuartersX);
