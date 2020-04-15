@@ -928,9 +928,11 @@ function onCollide(scene, collision) {
     //   let enemy = head.destroyPriorities[i];
     //   enemy.setVelocity(0, 2);
     // }
-  } else {
-    // console.log('Unresolved collision between "' + nameA + '" and "' + nameB + '"');
-  }
+  }// else {
+  //   if (nameA !== 'asteroids' || nameB !== 'asteroids') {
+  //     console.log('Unresolved collision between "' + nameA + '" and "' + nameB + '"');
+  //   }
+  // }
 }
 
 function handleCollidePlayer(scene, object, player) {
@@ -1002,6 +1004,10 @@ function handleCollidePlayer(scene, object, player) {
 
 function handleCollideBullet(scene, bullet, victim) {
   // console.log("Bullet hit victim: " + victim.groupName);
+
+  if (bullet.y <= 0) {
+    return;
+  }
 
   if (victim.hasOwnProperty('head')) {
     victim = victim.head;

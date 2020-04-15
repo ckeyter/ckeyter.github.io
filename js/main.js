@@ -90,7 +90,7 @@ function gameIntroPhase2() {
         menuTop += 1;
         menu.style.top = menuTop + "px";
       }
-    }, 2);
+    }, 1);
 
     let spriteTop = menu.getBoundingClientRect().top - 44;
 
