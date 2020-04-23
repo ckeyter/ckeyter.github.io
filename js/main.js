@@ -1,5 +1,34 @@
 let particles = null;
 
+function updateProfileImage() {
+  let image = document.getElementById("profile-image");
+  // let degrees = Math.floor(Math.random() * 360);
+  let path = "/images/profile.png";
+  let rotateY = 180;
+
+  if (image.src.includes("profile")) {
+    path = "/images/doggo.png";
+    rotateY = 0;
+    particles.pJS.particles.move.speed = 40;
+  }
+  else {
+    particles.pJS.particles.move.speed = -40;
+  }
+
+  window.setTimeout(function() {
+    image.style.transform = "rotateY(" + rotateY + "deg)";
+  }, 10);
+
+  window.setTimeout(function() {
+    image.src = path;
+    // image.style.filter = "hue-rotate(" + degrees + "deg)";
+  }, 150);
+
+  window.setTimeout(function() {
+    particles.pJS.particles.move.speed = 2;
+  }, 700);
+}
+
 function gameIntroPhase1() {
   document.getElementById("start-audio").play();
 
@@ -56,7 +85,7 @@ function gameIntroPhase1() {
         setTimeout(function() {
           tutorial_3.style.display = "none";
           tutorial_4.style.display = "inline";
-          
+
           setTimeout(function() {
             tutorial_4.style.display = "none";
           }, 4000);
@@ -126,18 +155,18 @@ function gameIntroPhase3() {
   }, 130);
 }
 
-document.addEventListener("DOMContentLoaded", function () {
+function initParticles(number, colors) {
   particles = particlesJS('particles-js', {
     "particles": {
       "number": {
-        "value": 100,
+        "value": number,
         "density": {
           "enable": true,
           "value_area": 500
         }
       },
       "color": {
-        "value": ["#ffffff", "#DC143C"]
+        "value": colors
       },
       "shape": {
         "type": "edge",
@@ -225,6 +254,10 @@ document.addEventListener("DOMContentLoaded", function () {
     //   }
     // }
   });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  initParticles(100, ["#ffffff", "#DC143C"]);
 
   // If we're on the /game page, start the particles out moving downwards
   if (window.location.pathname.indexOf('game') !== -1) {
