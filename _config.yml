@@ -15,6 +15,6 @@ email: ckeyter@gmail.com
 
 # Google-analytics
 google-analytics:
-  id: ""
+  id: "UA-166139450-1"
 
 exclude: ['package.json', 'src' , 'node_modules']
