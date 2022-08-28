@@ -120,10 +120,15 @@ div#particles-js {
 .job-header {
   font-size: 48px;
   text-align: center;
-  // background-color: $pink;
+  background-color: $pink;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  border-top-left-radius:5px;
+  border-top-right-radius:5px;
 }
 .job-subheader {
   font-size: 40px;
+  margin: 15px;
 }
 .flex {
   display: flex;

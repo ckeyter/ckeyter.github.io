@@ -6,15 +6,11 @@ description: Resume Website
 
 # User settings
 username: Christiaan Keyter
-user_description: Nomad Software Developer
-user_title: Nomad Software Developer
+user_description: Software Developer
+user_title: Software Developer
 email: ckeyter@gmail.com
 # twitter_username: lorem_ipsum
 # github_username:  lorem_ipsum
 # gplus_username:  lorem_ipsum
-
-# Google-analytics
-google-analytics:
-  id: "UA-166139450-1"
 
 exclude: ['package.json', 'src' , 'node_modules']

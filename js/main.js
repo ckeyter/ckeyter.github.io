@@ -260,7 +260,7 @@ document.addEventListener("DOMContentLoaded", function () {
   initParticles(100, ["#ffffff", "#DC143C"]);
 
   // If we're on the /game page, start the particles out moving downwards
-  if (window.location.pathname.indexOf('game') !== -1) {
+  if (window.location.pathname === "/game/") {
     particles.pJS.particles.move.speed = -10;
   }
 
