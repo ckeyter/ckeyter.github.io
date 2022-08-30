@@ -30,6 +30,7 @@ function updateProfileImage() {
 }
 
 function gameIntroPhase1() {
+
   document.getElementById("start-audio").play();
 
   // 1. Stop particles and start phase 2 when they have stopped
@@ -57,9 +58,9 @@ function gameIntroPhase1() {
   // 3. Prepare things so that the menu can be moved down out of the page
   let menu = document.getElementById("menu");
   let menuRect = menu.getBoundingClientRect();
-  let menuTop = menuRect.top + 44;
+  let menuTop = menuRect.top + 22;
 
-  // menu.style.position = "absolute";
+  menu.style.position = "absolute";
   menu.style.margin = "0px";
   menu.style.left = menuRect.left + "px";
   menu.style.top = menuTop + "px";
@@ -93,6 +94,8 @@ function gameIntroPhase1() {
       }, 4000);
     }, 4000);
   }, 7500);
+
+  return false;
 }
 
 function gameIntroPhase2() {

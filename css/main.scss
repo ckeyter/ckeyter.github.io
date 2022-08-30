@@ -9,8 +9,10 @@
   font-family: "Monogram";
   src: url(../fonts/monogram.ttf) format("truetype");
 }
-body {
+body, html {
   font-family: "Monogram", sans-serif !important;
+  height: 100%;
+  display: grid;
 }
 a {
   color: $white;
@@ -22,12 +24,17 @@ a:hover {
 }
 #menu {
   font-size: 48px;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 510px;
-  height: 470px;
-  margin: -235px 0 0 -255px;
+  text-align: center;
+  margin: auto;
+  z-index: 1;
+  /*top: 50%;*/
+  /*position: absolute;*/
+  /*top: 50%;*/
+  /*left: 50%;*/
+  /*transform: translate(-50%, -50%);*/
+  /*width: 510px;*/
+  /*height: 470px;*/
+  /*margin: -235px 0 0 -255px;*/
 }
 #menu h1 {
   font-size: 80px;
@@ -59,12 +66,6 @@ div#particles-js {
   margin-top: 10px;
   text-align: center;
 }
-.logo {
-  // text-align: center;
-}
-.navicon {
-  // width: 300px;
-}
 .navicon .tool-tip {
   display: none;
   position: relative;
@@ -73,12 +74,6 @@ div#particles-js {
   font-size: 40px;
   width: 200px;
   left: -280px;
-}
-.navicon:hover {
-  // cursor: pointer;
-}
-.navicon a:hover {
-  // cursor: pointer;
 }
 .navicon:hover .tool-tip {
   display: inline-block;
@@ -94,24 +89,23 @@ div#particles-js {
   color: $white;
   text-decoration: none;
   text-transform: uppercase;
+  position: relative;
 }
 .menu-link:hover {
   color: $pink;
   text-decoration: none;
-  // text-shadow: 2px 2px 0px $white;
-}
-.menu-cursor {
-  margin-right: 10px;
-  margin-bottom: 10px;
 }
 .menu-item {
-  margin-right: 60px;
+  position: relative;
 }
 .menu-item:hover .menu-cursor {
-  visibility: visible;
+  display: inline;
 }
 .menu-cursor {
-  visibility: hidden;
+  display: none;
+  position: absolute;
+  top: 10px;
+  left: -35px;
 }
 .job-description {
   font-size: 32px;
@@ -196,25 +190,26 @@ canvas {
   color: $pink;
   font-size: 48px;
   display: none;
-  width: 600px;
 }
-#tutorial-2 {
-  width: 700px;
+.link-list a {
+  width: 24px;
+  height: 24px;
+  display: inline-block;
 }
 .project-image {
   padding-top: 10px;
 }
 
 @keyframes float {
-	0% {
-		transform: translatey(0px);
-	}
-	50% {
-		transform: translatey(-20px);
-	}
-	100% {
-		transform: translatey(0px);
-	}
+    0% {
+        transform: translatey(0px);
+    }
+    50% {
+        transform: translatey(-20px);
+    }
+    100% {
+        transform: translatey(0px);
+    }
 }
 #profile-image {
   // transform: translatey(0px);
@@ -222,7 +217,7 @@ canvas {
   cursor: pointer;
   transform: rotatey(180deg);
   transition: 0.6s;
-	transform-style: preserve-3d;
+    transform-style: preserve-3d;
   perspective: 1000px;
 }
 #profile-image:hover {
