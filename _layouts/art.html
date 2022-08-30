@@ -15,84 +15,29 @@ layout: default
     </div>
   </div>
 
-  {% for post in site.categories["Games"] %}
   <div class="row">
     <div class="col-lg-1">
-      <div class="position-fixed" style="z-index:1020">
-        <div class="navicon logo">
-          <a href="/">
-            <img class="pixel-image icon-link" src="../images/logo.png" height="44px" width="44px">
-          </a>
-          <span class="tool-tip">MAIN MENU</span>
-        </div>
-        <div class="navicon logo">
-          <a href="/about">
-            <img class="pixel-image icon-link" src="../images/icon-about.png" height="44px" width="44px">
-          </a>
-          <span class="tool-tip">ABOUT</span>
-        </div>
-        <div class="navicon logo">
-          <a href="/resume">
-            <img class="pixel-image icon-link" src="../images/icon-resume.png" height="44px" width="44px">
-          </a>
-          <span class="tool-tip">RESUME</span>
-        </div>
-        <div class="navicon logo">
-          <a href="/games">
-            <img class="pixel-image icon-link" src="../images/icon-projects.png" height="44px" width="44px">
-          </a>
-          <span class="tool-tip">GAMES</span>
-        </div>
-      </div>
+      {% include sidebar.html %}
     </div>
-    <div class="col-lg-11">
-      <div class="card mb-4">
-        <div class="card-header p-0">
-          <h1 class="job-header">{{ post.title }}</h1>
-          <div class="job-subheader flex">
-              <div class="item">{{ post.period }}</div>
-              <div class="item">{{ post.genre }}</div>
-              <div class="item">{{ post.development }}</div>
-          </div>
-        </div>
-        <div class="card-body text-dark bg-light rounded-bottom">
-          <p class="card-text job-description">{{ post.content }}</p>
-        </div>
-      </div>
-    </div>
-  </div>
-  {% endfor %}
-
-  <div class="row header-row">
-    <div class="col-lg-1"></div>
-    <div class="col-lg-11">
-      <div class="page-header">
-        <h1 class="display-1">Open Source</h1>
-      </div>
-    </div>
+    <div class="col-lg-11"></div>
   </div>
 
-  {% for post in site.categories["Projects"] %}
   <div class="row">
     <div class="col-lg-1"></div>
-    <div class="col-lg-11">
-      <div class="card mb-4">
-        <div class="card-header">
-          <div class="flex" style="font-size:40px">
-              <div class="item">{{ post.period }}</div>
-              <div class="item"><h1>{{ post.title }}</h1></div>
-              <div class="item">
-                <a class="icon-link" style="font-size: 20px" target="_blank" href="{{ post.repo_url }}">
-                  <img src="/images/github/GitHub-Mark-Light-32px.png">
-                </a>
-              </div>
-          </div>
-        </div>
-        <div class="card-body text-dark bg-light rounded-bottom">
-          <p class="card-text job-description">{{ post.content }}</p>
-        </div>
-      </div>
+    <div class="col-lg-11" style="font-size:40px">
+      <img class="project-image" src="/images/art/birdman.png" width="100%">
+      <img class="project-image" src="/images/art/the-great-debate.png" width="100%">
+      <img class="project-image" src="/images/art/the-hesitant.png" width="100%">
+      <img class="project-image" src="/images/art/the-exhibition.png" width="100%">
+      <img class="project-image" src="/images/art/mr-elephant.png" width="100%">
+      <img class="project-image" src="/images/art/outcast.png" width="100%">
+      <img class="project-image" src="/images/art/feed-me.png" width="100%">
+      <img class="project-image" src="/images/art/lord-of-the-night.png" width="100%">
+      <img class="project-image" src="/images/art/yearning.png" width="100%">
+      <img class="project-image" src="/images/art/morph.png" width="100%">
+      <img class="project-image" src="/images/art/tension.png" width="100%">
+      <img class="project-image" src="/images/art/knife.png" width="100%">
+      <img class="project-image" src="/images/art/amalgamation.png" width="100%">
     </div>
   </div>
-  {% endfor %}
 </div>
